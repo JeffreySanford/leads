@@ -1,0 +1,27 @@
+{
+  "name": "@leads/leads-api-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "leads-api-e2e",
+    "implicitDependencies": [
+      "leads-api"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "review/leads-api-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "leads-api:build",
+          "leads-api:serve"
+        ]
+      }
+    }
+  }
+}

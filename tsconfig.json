@@ -2,5 +2,18 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./review-e2e"
+    },
+    {
+      "path": "./review/leads-api-e2e"
+    },
+    {
+      "path": "./review/leads-api"
+    },
+    {
+      "path": "./review"
+    }
+  ]
 }
