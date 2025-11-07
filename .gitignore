@@ -46,3 +46,14 @@ Thumbs.db
 .angular
 
 test-output
+
+# Nx and npm cache files
+.nx/
+**/node_modules/
+**/_cacache/
+**/_logs/
+**/_npx/
+**/nx-console-tmp*/
+
+# Documentation
+SAM_SEARCH_DOCUMENTATION.md

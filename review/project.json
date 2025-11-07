@@ -21,12 +21,7 @@
             "input": "review/public"
           }
         ],
-        "styles": ["review/src/styles.scss"],
-        "server": "review/src/main.server.ts",
-        "ssr": {
-          "entry": "review/src/server.ts"
-        },
-        "outputMode": "server"
+        "styles": ["review/src/styles.scss"]
       },
       "configurations": {
         "production": {
@@ -60,7 +55,8 @@
           "buildTarget": "leads-ui:build:production"
         },
         "development": {
-          "buildTarget": "leads-ui:build:development"
+          "buildTarget": "leads-ui:build:development",
+          "proxyConfig": "review/proxy.conf.json"
         }
       },
       "defaultConfiguration": "development"
