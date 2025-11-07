@@ -75,7 +75,8 @@
     "packages/*",
     "backend",
     "backend-e2e",
-    "review/*"
+    "review/*",
+    "apps/*"
   ],
   "dependencies": {
     "@angular-devkit/build-angular": "~20.3.0",
