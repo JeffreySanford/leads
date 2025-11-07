@@ -11,12 +11,21 @@ export class SamApiService {
     limit?: number;
   }) {
     try {
+      // SAM.gov requires dates in MM/dd/yyyy format
+      const postedFromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const postedToDate = new Date();
+      
+      const formatDate = (date: Date): string => {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      };
+
       const searchParams = new URLSearchParams({
         api_key: process.env.SAM_API_KEY || 'DEMO_KEY',
-        postedFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split('T')[0],
-        postedTo: new Date().toISOString().split('T')[0],
+        postedFrom: formatDate(postedFromDate),
+        postedTo: formatDate(postedToDate),
         limit: (params.limit || 10).toString(),
         offset: '0',
       });

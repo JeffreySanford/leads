@@ -3,21 +3,21 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "serve:all": "nx run-many --target=serve --projects=leads-api,leads-ui --parallel",
+    "serve:all": "nx run-many --target=serve --projects=leads-api,leads-web --parallel",
     "serve:api": "nx serve leads-api",
-    "serve:ui": "nx serve leads-ui",
-    "build:all": "nx run-many --target=build --projects=leads-api,leads-ui",
+    "serve:web": "nx serve leads-web",
+    "build:all": "nx run-many --target=build --projects=leads-api,leads-web",
     "build:api": "nx build leads-api",
-    "build:ui": "nx build leads-ui",
+    "build:web": "nx build leads-web",
     "lint:all": "nx run-many --target=lint --all",
     "lint:api": "nx lint leads-api",
-    "lint:ui": "nx lint leads-ui",
+    "lint:web": "nx lint leads-web",
     "test:all": "nx run-many --target=test --all",
     "test:api": "nx test leads-api",
-    "test:ui": "nx test leads-ui",
+    "test:web": "nx test leads-web",
     "e2e:all": "nx run-many --target=e2e --all",
     "e2e:api": "nx e2e leads-api-e2e",
-    "e2e:ui": "nx e2e leads-ui-e2e"
+    "e2e:web": "nx e2e leads-web-e2e"
   },
   "private": true,
   "devDependencies": {
@@ -71,13 +71,6 @@
     "typescript-eslint": "^8.40.0",
     "webpack-cli": "^5.1.4"
   },
-  "workspaces": [
-    "packages/*",
-    "backend",
-    "backend-e2e",
-    "review/*",
-    "apps/*"
-  ],
   "dependencies": {
     "@angular-devkit/build-angular": "~20.3.0",
     "@angular/animations": "^20.3.7",
