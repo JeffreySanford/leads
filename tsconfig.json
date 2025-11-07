@@ -4,16 +4,16 @@
   "files": [],
   "references": [
     {
-      "path": "./review-e2e"
+      "path": "./apps/leads-api-e2e"
     },
     {
-      "path": "./review/leads-api-e2e"
+      "path": "./apps/leads-web-e2e"
     },
     {
-      "path": "./review/leads-api"
+      "path": "./apps/leads-api"
     },
     {
-      "path": "./review"
+      "path": "./apps/leads-web"
     }
   ]
 }

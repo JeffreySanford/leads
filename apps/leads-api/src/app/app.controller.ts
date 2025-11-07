@@ -11,6 +11,11 @@ export class AppController {
     return this.appService.getData();
   }
 
+  @Get('health')
+  async getHealth() {
+    return this.appService.getHealthStatus();
+  }
+
   @Get('pack')
   async packLeads(): Promise<{
     leads: LeadResponseDto[];

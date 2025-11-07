@@ -134,12 +134,13 @@ a[mat-button] {
     }
 
     .status-indicator {
-      width: 10px;
+      min-width: 10px;
       height: 10px;
       border-radius: 50%;
       background: rgba(156, 163, 175, 0.6);
       animation: statusPulse 2s ease-in-out infinite;
       box-shadow: 0 0 8px rgba(156, 163, 175, 0.4);
+      flex-shrink: 0;
     }
 
     &.online .status-indicator {
@@ -152,6 +153,18 @@ a[mat-button] {
       background: rgb(239, 68, 68);
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
       animation: statusPulse 1s ease-in-out infinite;
+    }
+
+    &.checking .status-indicator {
+      background: rgb(59, 130, 246);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+      animation: spin 1s linear infinite;
+    }
+
+    &.error .status-indicator {
+      background: rgb(251, 191, 36);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+      animation: statusPulse 1.5s ease-in-out infinite;
     }
 
     &.pending .status-indicator {
@@ -181,5 +194,14 @@ a[mat-button] {
   }
   50% {
     box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 30px rgba(34, 197, 94, 0.5);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

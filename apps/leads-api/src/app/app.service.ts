@@ -1,16 +1,65 @@
 import { Injectable } from '@nestjs/common';
 import { LeadsService } from './services/leads.service';
 import { SamApiService } from './services/sam-api.service';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 @Injectable()
 export class AppService {
+  private lastSamApiCheck: Date | null = null;
+  private samApiStatus: 'connected' | 'disconnected' | 'error' = 'disconnected';
+
   constructor(
     private readonly leadsService: LeadsService,
-    private readonly samApiService: SamApiService
-  ) {}
+    private readonly samApiService: SamApiService,
+    @InjectConnection() private readonly mongoConnection: Connection
+  ) {
+    // Check SAM.gov API status on startup
+    this.checkSamApiStatus();
+  }
 
   getData(): { message: string } {
     return { message: 'SAM Leads API - Connected to in-memory MongoDB' };
+  }
+
+  async getHealthStatus() {
+    const dbConnected = this.mongoConnection.readyState === 1;
+    
+    // Periodically check SAM API (every 5 minutes)
+    const fiveMinutes = 5 * 60 * 1000;
+    if (!this.lastSamApiCheck || Date.now() - this.lastSamApiCheck.getTime() > fiveMinutes) {
+      await this.checkSamApiStatus();
+    }
+
+    return {
+      status: 'ok',
+      database: {
+        connected: dbConnected,
+        status: dbConnected ? 'online' : 'offline',
+      },
+      samApi: {
+        connected: this.samApiStatus === 'connected',
+        status: this.samApiStatus,
+        lastCheck: this.lastSamApiCheck,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  private async checkSamApiStatus(): Promise<void> {
+    try {
+      // Test SAM.gov API with a minimal query
+      const contracts = await this.samApiService.searchContracts({
+        limit: 1,
+      });
+      
+      this.samApiStatus = contracts && contracts.length >= 0 ? 'connected' : 'error';
+      this.lastSamApiCheck = new Date();
+    } catch (error) {
+      console.error('SAM.gov API health check failed:', error);
+      this.samApiStatus = 'error';
+      this.lastSamApiCheck = new Date();
+    }
   }
 
   async packLeads() {
