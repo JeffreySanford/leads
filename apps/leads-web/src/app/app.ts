@@ -3,8 +3,9 @@ import { RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CommonModule } from '@angular/common';
-import { StatusService, ConnectionStatus } from './services/status.service';
+import { StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -14,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     CommonModule,
   ],
   selector: 'app-root',
@@ -28,18 +30,24 @@ export class App implements OnInit, OnDestroy {
 
   frontendStatus: ConnectionStatus = 'checking';
   backendStatus: ConnectionStatus = 'checking';
+    backendLatency = 0;
   databaseStatus: ConnectionStatus = 'checking';
+    databaseLatency = 0;
   samApiStatus: ConnectionStatus = 'checking';
+    samApiLatency = 0;
 
   ngOnInit() {
     // Subscribe to status updates from the observable stream
     this.statusService.status$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(status => {
+      .subscribe((status: SystemStatus) => {
         this.frontendStatus = status.frontend;
         this.backendStatus = status.backend;
+        this.backendLatency = status.backendLatency ?? 0;
         this.databaseStatus = status.database;
+        this.databaseLatency = status.databaseLatency ?? 0;
         this.samApiStatus = status.samApi;
+        this.samApiLatency = status.samApiLatency ?? 0;
       });
   }
 

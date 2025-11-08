@@ -53,6 +53,9 @@ interface LeadResponseDto {
   styleUrl: './search-sam.component.scss',
 })
 export class SearchSamComponent {
+  mathCeil(value: number): number {
+    return Math.ceil(value);
+  }
   private http = inject(HttpClient);
   term = '';
   leads: LeadResponseDto[] = [];
@@ -62,6 +65,9 @@ export class SearchSamComponent {
   expandedLeads = new Set<string>();
   showNaicsCodes = true; // Toggle for NAICS code display
   showSampleData = true; // Toggle for sample data display
+  disableNaics = false; // Toggle for NAICS filter
+  limit = 100;
+  offset = 0;
 
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
@@ -153,7 +159,12 @@ export class SearchSamComponent {
     this.http
       .post<{ results: string[]; total: number; leads: LeadResponseDto[] }>(
         '/api/search',
-        { term: this.term }
+        {
+          term: this.term,
+          disableNaics: this.disableNaics,
+          limit: this.limit,
+          offset: this.offset
+        }
       )
       .subscribe({
         next: (data) => {
@@ -167,5 +178,23 @@ export class SearchSamComponent {
           this.loading = false;
         },
       });
+  }
+
+  showAllOpportunities() {
+    this.disableNaics = true;
+    this.offset = 0;
+    this.search();
+  }
+
+  nextPage() {
+    this.offset += this.limit;
+    this.search();
+  }
+
+  prevPage() {
+    if (this.offset >= this.limit) {
+      this.offset -= this.limit;
+      this.search();
+    }
   }
 }

@@ -7,51 +7,29 @@
     >
   </mat-card-header>
   <mat-card-content>
-    <!-- Data Source Status -->
-    <div
-      *ngIf="leads.length > 0"
-      style="
-        background: linear-gradient(
-          135deg,
-          rgba(255, 152, 0, 0.1),
-          rgba(255, 193, 7, 0.1)
-        );
-        border-left: 4px solid #ff9800;
-        padding: 12px;
-        margin-bottom: 16px;
-        border-radius: 8px;
-      "
-    >
-      <div
-        style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px"
-      >
-        <mat-icon style="color: #ff9800">info</mat-icon>
-        <strong style="color: #f57c00">Data Source Status</strong>
-      </div>
-      <div
-        style="
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
-          font-size: 13px;
-        "
-      >
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
-          <span><strong>SAM.gov API:</strong> 0 records</span>
+    <!-- Improved Data Source Status -->
+    <div *ngIf="leads.length > 0 || lastSource === 'live'" class="data-source-status" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #f5f5f5; border-left: 4px solid #2196f3;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Backend API Status -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <mat-icon [style.color]="!loading ? '#4caf50' : '#ff9800'">cloud</mat-icon>
+          <strong>Backend API:</strong>
+          <span [style.color]="!loading ? '#4caf50' : '#ff9800'">{{ !loading ? 'Online' : 'Loading...' }}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
-          <span><strong>FPDS-NG:</strong> 0 records</span>
+        <!-- Database Status -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <mat-icon [style.color]="leads.length > 0 ? '#4caf50' : '#ff9800'">storage</mat-icon>
+          <strong>Database:</strong>
+          <span [style.color]="leads.length > 0 ? '#4caf50' : '#ff9800'">{{ leads.length > 0 ? 'Connected' : 'Loading...' }}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
-          <span><strong>USA Spending:</strong> 0 records</span>
+        <!-- SAM.gov API Status -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <mat-icon [style.color]="lastSource === 'live' ? '#4caf50' : '#2196f3'">cloud_done</mat-icon>
+          <strong>SAM.gov API:</strong>
+          <span [style.color]="lastSource === 'live' ? '#4caf50' : '#2196f3'">{{ lastSource === 'live' ? 'Online' : 'Sample Mode' }}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #4caf50; font-size: 18px">science</mat-icon>
-          <span><strong>Seeded Data:</strong> {{ leads.length }} records</span>
-        </div>
+        <span style="color: #666; font-size: 13px;">Records: <strong>{{ filteredLeads.length }}</strong></span>
+        <span *ngIf="lastLatency !== null" style="color: #666; font-size: 13px;">Latency: <strong>{{ lastLatency }} ms</strong></span>
       </div>
     </div>
 
@@ -64,14 +42,6 @@
         flex-wrap: wrap;
       "
     >
-      <button
-        mat-raised-button
-        color="warn"
-        (click)="testLiveSam()"
-        [disabled]="loading"
-      >
-        <mat-icon>cloud_sync</mat-icon> Test LIVE SAM.gov API
-      </button>
 
       <button
         mat-raised-button
@@ -83,45 +53,116 @@
       </button>
 
       <button
-        mat-stroked-button
+        style="min-width: 120px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 0; margin-left: 0;"
         (click)="showNaicsCodes = !showNaicsCodes"
         *ngIf="leads.length > 0"
       >
-        <mat-icon>{{
-          showNaicsCodes ? 'visibility' : 'visibility_off'
-        }}</mat-icon>
-        {{ showNaicsCodes ? 'Hide' : 'Show' }} NAICS Codes
+          <mat-icon>{{ showNaicsCodes ? 'visibility' : 'visibility_off' }}</mat-icon>
+          {{ showNaicsCodes ? 'Hide All' : 'Show All' }} NAICS Codes
       </button>
 
       <button
         mat-stroked-button
-        (click)="showSampleData = !showSampleData"
-        *ngIf="leads.length > 0 && sampleCount > 0"
+        (click)="toggleSampleData()"
+        *ngIf="leads.length > 0"
         [matBadge]="sampleCount.toString()"
         [matBadgeColor]="showSampleData ? 'primary' : 'warn'"
         matBadgeSize="small"
         [color]="showSampleData ? 'primary' : 'accent'"
       >
-        <mat-icon>{{
-          showSampleData ? 'visibility' : 'visibility_off'
-        }}</mat-icon>
-        Sample Data: {{ showSampleData ? 'ON' : 'OFF' }}
+        <mat-icon>{{ showSampleData ? 'visibility' : 'visibility_off' }}</mat-icon>
+        {{ showSampleData ? 'Sample Data: ON' : 'Live Data: ON' }}
       </button>
 
       <div
         *ngIf="leads.length > 0"
-        style="display: flex; gap: 8px; margin-left: auto"
+        style="display: flex; gap: 16px; margin-left: auto; align-items: center;"
       >
         <mat-chip
           *ngIf="sampleCount > 0"
-          style="
-            background: linear-gradient(135deg, #2196f3, #1976d2);
-            color: white;
-          "
+          class="sample-indicator sample-chip"
+          matTooltip="Show tracked sample contracts"
+          (click)="toggleLabOverlay()"
         >
-          <mat-icon>science</mat-icon>
-          {{ sampleCount }} Sample
+          <mat-icon>flask</mat-icon>
+          {{ sampleCount }} Contracts
         </mat-chip>
+        <div *ngIf="showLabOverlay" class="lab-overlay">
+          <div class="lab-modal">
+            <div class="lab-modal-header">
+              <mat-icon class="lab-modal-icon">flask</mat-icon>
+              <span class="lab-modal-title">Sample Contracts Lab</span>
+              <button mat-icon-button (click)="showLabOverlay = false" class="lab-modal-close"><mat-icon>close</mat-icon></button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <button mat-stroked-button color="primary" (click)="showSampleContracts = !showSampleContracts">
+                <mat-icon>{{ showSampleContracts ? 'description' : 'business' }}</mat-icon>
+                {{ showSampleContracts ? 'Show Sample Leads' : 'Show Sample Contracts' }}
+              </button>
+            </div>
+            <div *ngIf="showSampleContracts">
+              <!-- Material Table for Sample Contracts -->
+              <div style="margin-bottom: 16px;">
+                <mat-form-field appearance="outline" style="width: 300px;">
+                  <mat-label>Filter contracts</mat-label>
+                  <input matInput [(ngModel)]="tableFilter" (ngModelChange)="onTableFilterChange($event)" placeholder="Search by number, title, company" />
+                  <button mat-icon-button matSuffix *ngIf="tableFilter" (click)="onTableFilterChange('')"><mat-icon>close</mat-icon></button>
+                </mat-form-field>
+              </div>
+              <table mat-table [dataSource]="filteredSampleContracts" class="mat-elevation-z2" style="width: 100%;">
+                <!-- Contract Number Column -->
+                <ng-container matColumnDef="contractNumber">
+                  <th mat-header-cell *matHeaderCellDef>Number</th>
+                  <td mat-cell *matCellDef="let contract">{{ contract.contractNumber }}</td>
+                </ng-container>
+                <!-- Title Column -->
+                <ng-container matColumnDef="title">
+                  <th mat-header-cell *matHeaderCellDef>Title</th>
+                  <td mat-cell *matCellDef="let contract">{{ contract.title }}</td>
+                </ng-container>
+                <!-- Company Column -->
+                <ng-container matColumnDef="companyName">
+                  <th mat-header-cell *matHeaderCellDef>Company</th>
+                  <td mat-cell *matCellDef="let contract">{{ contract.companyName }}</td>
+                </ng-container>
+                <!-- Value Column -->
+                <ng-container matColumnDef="value">
+                  <th mat-header-cell *matHeaderCellDef>Value</th>
+                  <td mat-cell *matCellDef="let contract">${{ contract.value | number }}</td>
+                </ng-container>
+                <!-- Award Date Column -->
+                <ng-container matColumnDef="awardDate">
+                  <th mat-header-cell *matHeaderCellDef>Awarded</th>
+                  <td mat-cell *matCellDef="let contract">{{ contract.awardDate | date:'mediumDate' }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="['contractNumber', 'title', 'companyName', 'value', 'awardDate']"></tr>
+                <tr mat-row *matRowDef="let row; columns: ['contractNumber', 'title', 'companyName', 'value', 'awardDate'];"></tr>
+              </table>
+              <mat-paginator
+                [length]="filteredSampleContractsTotal"
+                [pageSize]="pageSize"
+                [pageIndex]="pageIndex"
+                [pageSizeOptions]="[5, 10, 20]"
+                (page)="onTablePageChange($event)"
+                showFirstLastButtons>
+              </mat-paginator>
+              <div *ngIf="filteredSampleContractsTotal === 0" class="lab-contract-empty">No sample contracts found.</div>
+            </div>
+            <div *ngIf="!showSampleContracts">
+              <!-- Sample Leads Table Placeholder -->
+              <div *ngIf="filteredLeads.length > 0">
+                <div *ngFor="let lead of filteredLeads">
+                  <div *ngIf="hasSampleContracts(lead)" class="lab-contract">
+                    <div class="lab-contract-title">{{ lead.companyName }} ({{ lead.leadId }})</div>
+                    <div class="lab-contract-description">{{ lead.naicsDescription }} | {{ lead.city }}, {{ lead.stateCode }}</div>
+                    <div class="lab-contract-info">Contracts: {{ lead.contracts?.length || 0 }}</div>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="filteredLeads.length === 0" class="lab-contract-empty">No sample leads found.</div>
+            </div>
+          </div>
+        </div>
         <mat-chip
           *ngIf="testCount > 0"
           style="

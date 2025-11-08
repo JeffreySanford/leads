@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
+import { LeadResponseDto } from './dto/lead.dto';
 import { LeadsService } from './services/leads.service';
 import { SamApiService } from './services/sam-api.service';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -14,8 +16,7 @@ export class AppService {
     private readonly samApiService: SamApiService,
     @InjectConnection() private readonly mongoConnection: Connection
   ) {
-    // Check SAM.gov API status on startup
-    this.checkSamApiStatus();
+  // Do not check SAM.gov API status on startup. Only check when explicitly requested.
   }
 
   getData(): { message: string } {
@@ -25,11 +26,7 @@ export class AppService {
   async getHealthStatus() {
     const dbConnected = this.mongoConnection.readyState === 1;
     
-    // Periodically check SAM API (every 5 minutes)
-    const fiveMinutes = 5 * 60 * 1000;
-    if (!this.lastSamApiCheck || Date.now() - this.lastSamApiCheck.getTime() > fiveMinutes) {
-      await this.checkSamApiStatus();
-    }
+    // Only check SAM API status if explicitly requested elsewhere
 
     return {
       status: 'ok',
@@ -46,43 +43,28 @@ export class AppService {
     };
   }
 
-  private async checkSamApiStatus(): Promise<void> {
-    try {
-      // Test SAM.gov API with a minimal query
-      const contracts = await this.samApiService.searchContracts({
-        limit: 1,
-      });
-      
-      this.samApiStatus = contracts && contracts.length >= 0 ? 'connected' : 'error';
-      this.lastSamApiCheck = new Date();
-    } catch (error) {
-      console.error('SAM.gov API health check failed:', error);
-      this.samApiStatus = 'error';
-      this.lastSamApiCheck = new Date();
-    }
-  }
 
   async packLeads() {
-    const leads = await this.leadsService.packLeads();
+    const leads = await firstValueFrom(this.leadsService.packLeads());
     return {
       leads,
       scriptOutput: `Packed ${leads.length} leads from database`,
     };
   }
 
-  async probeSam(leadId: string) {
+  probeSam(leadId: string) {
     return this.leadsService.probeSam(leadId);
   }
 
-  async probeSamVerbose(leadId: string) {
+  probeSamVerbose(leadId: string) {
     return this.leadsService.probeSamVerbose(leadId);
   }
 
   async searchSam(term: string) {
-    const searchResult = await this.leadsService.searchSam(term);
+    const searchResult = await firstValueFrom(this.leadsService.searchSam(term));
     return {
       results: searchResult.leads.map(
-        (lead) =>
+        (lead: LeadResponseDto) =>
           `${lead.companyName} (${lead.leadId}) - ${lead.naicsCode}: ${lead.city}, ${lead.stateCode}`
       ),
       total: searchResult.total,
@@ -92,32 +74,69 @@ export class AppService {
 
   async testLiveSamApi() {
     console.log('🔴 Testing LIVE SAM.gov API connection...');
-    const contracts = await this.samApiService.searchContracts({
-      maxValue: 250000,
-      setAside: 'SBA', // Small Business Set-Aside
-      limit: 5,
-    });
-
-    return {
-      success: true,
-      message:
-        'SAM.gov API Test - Fetching real contracts under $250K with Small Business Set-Aside',
-      contractsFound: contracts.length,
-      contracts: contracts.map((contract: Record<string, unknown>) => ({
-        noticeId: contract.noticeId,
-        title: contract.title,
-        solicitationNumber: contract.solicitationNumber,
-        agency: contract.fullParentPathName,
-        type: contract.type,
-        setAside: contract.typeOfSetAsideDescription,
-        value: contract.baseAndAllOptionsValue,
-        naicsCode: contract.naicsCode,
-        postedDate: contract.postedDate,
-        responseDeadLine: contract.responseDeadLine,
-        link: (contract.links as { href?: string }[])?.[0]?.href,
-      })),
-      timestamp: new Date(),
-    };
+    try {
+      const contracts = await this.samApiService.searchContracts({
+        maxValue: 250000,
+        setAside: 'SBA', // Small Business Set-Aside
+        limit: 5,
+      });
+      return {
+        success: true,
+        message:
+          'SAM.gov API Test - Fetching real contracts under $250K with Small Business Set-Aside',
+        contractsFound: contracts.length,
+        contracts: contracts.map((contract: Record<string, any>) => ({
+          leadId: contract.noticeId,
+          companyName: contract.title,
+          naicsCode: contract.naicsCode,
+          naicsDescription: contract.typeOfSetAsideDescription,
+          city: '',
+          stateCode: '',
+          businessType: [],
+          registrationStatus: contract.type,
+          probeStatus: 'live',
+          lastProbed: contract.postedDate ? new Date(contract.postedDate) : undefined,
+          contracts: [
+            {
+              contractNumber: contract.solicitationNumber,
+              title: contract.title,
+              description: contract.agency,
+              value: Number(contract.baseAndAllOptionsValue) || 0,
+              awardDate: contract.postedDate ? new Date(contract.postedDate) : new Date(),
+              status: 'Active',
+              isSample: false,
+              isTest: false,
+            },
+          ],
+        })),
+        timestamp: new Date(),
+      };
+    } catch (error: unknown) {
+      // Show rate limit details if available
+      let errorMsg = 'SAM.gov API error.';
+      let quotaMsg = '';
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+        const err = error as { message: string; response?: unknown };
+        if (err.message.includes('429')) {
+          errorMsg = 'SAM.gov API rate limit exceeded (429 Too Many Requests).';
+          if (err.response) {
+            try {
+              const errJson = typeof err.response === 'string' ? JSON.parse(err.response) : err.response;
+              quotaMsg = `Quota message: ${errJson.message || ''} Next access: ${errJson.nextAccessTime || ''}`;
+            } catch (parseErr) {
+              // Could not parse SAM.gov error response
+              console.warn('Could not parse SAM.gov error response:', parseErr);
+            }
+          }
+        }
+      }
+      return {
+        success: false,
+        message: errorMsg,
+        quota: quotaMsg,
+        timestamp: new Date(),
+      };
+    }
   }
 
   async searchNdItContracts() {

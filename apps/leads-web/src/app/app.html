@@ -20,9 +20,20 @@
       [class.checking]="frontendStatus === 'checking'"
       [class.error]="frontendStatus === 'error'"
     >
-      <mat-icon>web</mat-icon>
-      <span class="status-label">Frontend:</span>
-      <span class="status-indicator">{{ frontendStatus }}</span>
+        <mat-icon [ngClass]="{
+          'icon-online': frontendStatus === 'online',
+          'icon-offline': frontendStatus === 'offline',
+          'icon-error': frontendStatus === 'error'
+        }" matTooltip="Frontend\nStatus: {{frontendStatus}}">web</mat-icon>
+        <span class="status-label">Frontend:</span>
+        <span class="status-indicator">
+          <ng-container *ngIf="frontendStatus === 'checking'; else frontendStatusText">
+            <mat-icon class="icon-spin">autorenew</mat-icon>
+          </ng-container>
+          <ng-template #frontendStatusText>
+            <ng-container *ngIf="frontendStatus !== 'checking' && frontendStatus !== 'online'">{{ frontendStatus }}</ng-container>
+          </ng-template>
+        </span>
     </div>
     <div
       class="status-item"
@@ -31,9 +42,20 @@
       [class.checking]="backendStatus === 'checking'"
       [class.error]="backendStatus === 'error'"
     >
-      <mat-icon>dns</mat-icon>
-      <span class="status-label">Backend API:</span>
-      <span class="status-indicator">{{ backendStatus }}</span>
+        <mat-icon [ngClass]="{
+          'icon-online': backendStatus === 'online',
+          'icon-offline': backendStatus === 'offline',
+          'icon-error': backendStatus === 'error'
+        }" matTooltip="Backend API\nStatus: {{backendStatus}}\nLatency: {{backendLatency | number:'1.0-0'}} ms">dns</mat-icon>
+        <span class="status-label">Backend API:</span>
+        <span class="status-indicator">
+          <ng-container *ngIf="backendStatus === 'checking'; else backendStatusText">
+            <mat-icon class="icon-spin">autorenew</mat-icon>
+          </ng-container>
+          <ng-template #backendStatusText>
+            <ng-container *ngIf="backendStatus !== 'checking' && backendStatus !== 'online'">{{ backendStatus }}</ng-container>
+          </ng-template>
+        </span>
     </div>
     <div
       class="status-item"
@@ -42,20 +64,41 @@
       [class.checking]="databaseStatus === 'checking'"
       [class.error]="databaseStatus === 'error'"
     >
-      <mat-icon>storage</mat-icon>
-      <span class="status-label">Database:</span>
-      <span class="status-indicator">{{ databaseStatus }}</span>
+        <mat-icon [ngClass]="{
+          'icon-online': databaseStatus === 'online',
+          'icon-offline': databaseStatus === 'offline',
+          'icon-error': databaseStatus === 'error'
+        }" matTooltip="Database\nStatus: {{databaseStatus}}\nLatency: {{databaseLatency | number:'1.0-0'}} ms">storage</mat-icon>
+        <span class="status-label">Database:</span>
+        <span class="status-indicator">
+          <ng-container *ngIf="databaseStatus === 'checking'; else databaseStatusText">
+            <mat-icon class="icon-spin">autorenew</mat-icon>
+          </ng-container>
+          <ng-template #databaseStatusText>
+            <ng-container *ngIf="databaseStatus !== 'checking' && databaseStatus !== 'online'">{{ databaseStatus }}</ng-container>
+          </ng-template>
+        </span>
     </div>
     <div
       class="status-item"
       [class.online]="samApiStatus === 'online'"
-      [class.offline]="samApiStatus === 'offline'"
       [class.checking]="samApiStatus === 'checking'"
       [class.error]="samApiStatus === 'error'"
     >
-      <mat-icon>cloud</mat-icon>
-      <span class="status-label">SAM.gov API:</span>
-      <span class="status-indicator">{{ samApiStatus }}</span>
+        <mat-icon [ngClass]="{
+          'icon-online': samApiStatus === 'online',
+          'icon-error': samApiStatus === 'error'
+        }" matTooltip="SAM.gov API\nStatus: {{samApiStatus}}\nLatency: {{samApiLatency | number:'1.0-0'}} ms" [style.color]="samApiStatus === 'online' ? '#4caf50' : (samApiStatus === 'error' ? '#f44336' : '#2196f3')">cloud</mat-icon>
+        <span class="status-label">SAM.gov API:</span>
+        <span class="status-indicator">
+          <ng-container *ngIf="samApiStatus === 'checking'; else samApiStatusText">
+            <mat-icon class="icon-spin">autorenew</mat-icon>
+          </ng-container>
+          <ng-template #samApiStatusText>
+            <ng-container *ngIf="samApiStatus === 'online'">Live</ng-container>
+            <ng-container *ngIf="samApiStatus !== 'checking' && samApiStatus !== 'online'">{{ samApiStatus }}</ng-container>
+          </ng-template>
+        </span>
     </div>
   </div>
 </footer>

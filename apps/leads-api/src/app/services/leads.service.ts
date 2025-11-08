@@ -1,94 +1,118 @@
+import { liveSeedLeads } from '../seed-data/live-seed';
+import { seedLeads } from '../seed-data/leads.seed';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Lead } from '../schemas/lead.schema';
-import {
-  LeadResponseDto,
-  ProbeResultDto,
-  SearchResultDto,
-} from '../dto/lead.dto';
-import { seedLeads } from '../seed-data/leads.seed';
+import { LeadResponseDto, ProbeResultDto, SearchResultDto } from '../dto/lead.dto';
+import { Observable, from, of } from 'rxjs';
+import { switchMap, map } from 'rxjs/operators';
+
+// ...existing code...
 
 @Injectable()
 export class LeadsService implements OnModuleInit {
   constructor(@InjectModel(Lead.name) private leadModel: Model<Lead>) {}
 
-  async onModuleInit() {
-    const count = await this.leadModel.countDocuments();
-    if (count === 0) {
-      console.log('🌱 Seeding database with North Dakota SAM.gov leads...');
-      await this.leadModel.insertMany(seedLeads);
-      console.log(`✅ Seeded ${seedLeads.length} leads`);
-    }
+  onModuleInit(): void {
+    from(this.leadModel.countDocuments()).pipe(
+      switchMap((count) => {
+        if (count === 0) {
+          console.log('🌱 Seeding database with North Dakota SAM.gov leads...');
+          return from(this.leadModel.insertMany(seedLeads)).pipe(
+            map(() => {
+              console.log(`✅ Seeded ${seedLeads.length} leads`);
+            })
+          );
+        }
+        return of(undefined);
+      })
+    ).subscribe();
   }
 
-  async packLeads(): Promise<LeadResponseDto[]> {
-    const leads = await this.leadModel
-      .find()
-      .select(
-        'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
-      );
-    return leads.map((lead) => this.toResponseDto(lead));
+  importLiveSeedLeads(): Observable<number> {
+    if (!liveSeedLeads || liveSeedLeads.length === 0) return of(0);
+    let imported = 0;
+    return from(Promise.all(
+      (liveSeedLeads as LeadResponseDto[]).map(async (lead: LeadResponseDto) => {
+        if (!('leadId' in lead)) return;
+        const exists = await this.leadModel.exists({ leadId: lead.leadId });
+        if (!exists) {
+          await this.leadModel.create(lead);
+          imported++;
+        }
+      })
+    )).pipe(
+      map(() => {
+        console.log(`✅ Imported ${imported} live leads from live-seed.ts`);
+        return imported;
+      })
+    );
   }
 
-  async probeSam(leadId: string): Promise<ProbeResultDto> {
-    const lead = await this.leadModel.findOne({ leadId });
-
-    if (!lead) {
-      return {
-        leadId,
-        companyName: 'Unknown',
-        result: `Lead ${leadId} not found in database`,
-        timestamp: new Date(),
-      };
-    }
-
-    // Update probe status
-    lead.probeStatus = 'probed';
-    lead.lastProbed = new Date();
-    await lead.save();
-
-    return {
-      leadId: lead.leadId,
-      companyName: lead.companyName,
-      result: `Company: ${lead.companyName}\nNAICS: ${lead.naicsCode} - ${
-        lead.naicsDescription
-      }\nLocation: ${lead.city}, ${lead.stateCode}\nStatus: ${
-        lead.registrationStatus
-      }\nBusiness Types: ${lead.sbaBusinessTypeDesc?.join(', ')}`,
-      probeData: {
-        ueiSAM: lead.ueiSAM,
-        cageCode: lead.cageCode,
-        address: lead.addressLine1,
-        contact: {
-          name: lead.primaryContactName,
-          email: lead.primaryContactEmail,
-          phone: lead.primaryContactPhone,
-        },
-        website: lead.website,
-      },
-      timestamp: new Date(),
-    };
+  packLeads(): Observable<LeadResponseDto[]> {
+    return from(
+      this.leadModel
+        .find()
+        .select(
+          'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
+        )
+        .lean()
+  ).pipe(map((leads) => (leads as Lead[]).map((lead) => this.toResponseDto(lead))));
   }
 
-  async probeSamVerbose(leadId: string): Promise<ProbeResultDto> {
-    const lead = await this.leadModel.findOne({ leadId });
+  probeSam(leadId: string): Observable<ProbeResultDto> {
+    return from(this.leadModel.findOne({ leadId })).pipe(
+      switchMap((lead) => {
+        if (!lead) {
+          return of({
+            leadId,
+            companyName: 'Unknown',
+            result: `Lead ${leadId} not found in database`,
+            timestamp: new Date(),
+          });
+        }
+        lead.probeStatus = 'probed';
+        lead.lastProbed = new Date();
+        return from(lead.save()).pipe(
+          map(() => ({
+            leadId: lead.leadId,
+            companyName: lead.companyName,
+            result: `Company: ${lead.companyName}\nNAICS: ${lead.naicsCode} - ${lead.naicsDescription}\nLocation: ${lead.city}, ${lead.stateCode}\nStatus: ${lead.registrationStatus}\nBusiness Types: ${lead.sbaBusinessTypeDesc?.join(', ')}`,
+            probeData: {
+              ueiSAM: lead.ueiSAM,
+              cageCode: lead.cageCode,
+              address: lead.addressLine1,
+              contact: {
+                name: lead.primaryContactName,
+                email: lead.primaryContactEmail,
+                phone: lead.primaryContactPhone,
+              },
+              website: lead.website,
+            },
+            timestamp: new Date(),
+          }))
+        );
+      })
+    );
+  }
 
-    if (!lead) {
-      return {
-        leadId,
-        companyName: 'Unknown',
-        result: `Lead ${leadId} not found in database`,
-        timestamp: new Date(),
-      };
-    }
-
-    // Update probe status
-    lead.probeStatus = 'probed-verbose';
-    lead.lastProbed = new Date();
-    await lead.save();
-
-    const verboseResult = `
+  probeSamVerbose(leadId: string): Observable<ProbeResultDto> {
+    return from(this.leadModel.findOne({ leadId })).pipe(
+      switchMap((lead) => {
+        if (!lead) {
+          return of({
+            leadId,
+            companyName: 'Unknown',
+            result: `Lead ${leadId} not found in database`,
+            timestamp: new Date(),
+          });
+        }
+        lead.probeStatus = 'probed-verbose';
+        lead.lastProbed = new Date();
+        return from(lead.save()).pipe(
+          map(() => {
+            const verboseResult = `
 === SAM.gov Entity Details ===
 Lead ID: ${lead.leadId}
 Company Name: ${lead.companyName}
@@ -123,37 +147,43 @@ Website: ${lead.website}
 === Probe History ===
 Last Probed: ${lead.lastProbed?.toLocaleString()}
 Probe Status: ${lead.probeStatus}
-    `.trim();
-
-    return {
-      leadId: lead.leadId,
-      companyName: lead.companyName,
-      result: verboseResult,
-      probeData: lead.toObject(),
-      timestamp: new Date(),
-    };
+            `.trim();
+            return {
+              leadId: lead.leadId,
+              companyName: lead.companyName,
+              result: verboseResult,
+              probeData: lead.toObject(),
+              timestamp: new Date(),
+            };
+          })
+        );
+      })
+    );
   }
 
-  async searchSam(term: string): Promise<SearchResultDto> {
+  searchSam(term: string): Observable<SearchResultDto> {
     const regex = new RegExp(term, 'i');
-    const leads = await this.leadModel
-      .find({
-        $or: [
-          { companyName: regex },
-          { naicsCode: regex },
-          { naicsDescription: regex },
-          { city: regex },
-          { stateCode: regex },
-        ],
-      })
-      .select(
-        'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
-      );
-
-    return {
-      total: leads.length,
-      leads: leads.map((lead) => this.toResponseDto(lead)),
-    };
+    return from(
+      this.leadModel
+        .find({
+          $or: [
+            { companyName: regex },
+            { naicsCode: regex },
+            { naicsDescription: regex },
+            { city: regex },
+            { stateCode: regex },
+          ],
+        })
+        .select(
+          'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
+        )
+        .lean()
+    ).pipe(
+      map((leads) => ({
+        total: (leads as Lead[]).length,
+        leads: (leads as Lead[]).map((lead) => this.toResponseDto(lead)),
+      }))
+    );
   }
 
   private toResponseDto(lead: Lead): LeadResponseDto {

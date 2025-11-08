@@ -8,6 +8,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
 
 interface LeadResponseDto {
   leadId: string;
@@ -44,11 +49,158 @@ interface LeadResponseDto {
     MatProgressSpinnerModule,
     MatChipsModule,
     MatBadgeModule,
+    FormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   templateUrl: './pack-leads.component.html',
   styleUrl: './pack-leads.component.scss',
 })
 export class PackLeadsComponent implements OnInit {
+  showAllNaics = false;
+
+  // Toggle for showing all NAICS connected records
+  toggleShowAllNaics() {
+    this.showAllNaics = !this.showAllNaics;
+    this.pageIndex = 0;
+  }
+
+  // Paginated leads for table (first 50 records, 5 per page)
+  get paginatedLeads(): LeadResponseDto[] {
+    let allLeads: LeadResponseDto[];
+    if (this.showAllNaics) {
+      // Combine sample and live leads, remove duplicates by leadId
+      const sampleLeads = this.leads.filter(l => l.probeStatus !== 'live');
+      const liveLeads = this.leads.filter(l => l.probeStatus === 'live');
+      const combined = [...sampleLeads, ...liveLeads];
+      const unique = Array.from(new Map(combined.map(l => [l.leadId, l])).values());
+      allLeads = unique;
+    } else {
+      allLeads = this.filteredLeads;
+    }
+    // Sort by awardDate (most recent first)
+    allLeads = allLeads.sort((a, b) => {
+      const aDate = a.contracts?.[0]?.awardDate ? new Date(a.contracts[0].awardDate).getTime() : 0;
+      const bDate = b.contracts?.[0]?.awardDate ? new Date(b.contracts[0].awardDate).getTime() : 0;
+      return bDate - aDate;
+    });
+    // Limit to first 50
+    const limited = allLeads.slice(0, 50);
+    // Paginate
+    const start = this.pageIndex * this.pageSize;
+    return limited.slice(start, start + this.pageSize);
+  }
+
+  // Totals for status container
+  get backendTotal() {
+    // Simulate backend total as all leads
+    return this.leads.length;
+  }
+  get backendContractTotal() {
+    return this.leads.reduce((sum, l) => sum + (l.contracts?.length || 0), 0);
+  }
+  get databaseTotal() {
+    // Simulate database total as sample leads
+    return this.leads.filter(l => l.probeStatus !== 'live').length;
+  }
+  get databaseContractTotal() {
+    return this.leads.filter(l => l.probeStatus !== 'live').reduce((sum, l) => sum + (l.contracts?.length || 0), 0);
+  }
+  get samTotal() {
+    // Simulate SAM.gov total as live leads
+    return this.leads.filter(l => l.probeStatus === 'live').length;
+  }
+  get samContractTotal() {
+    return this.leads.filter(l => l.probeStatus === 'live').reduce((sum, l) => sum + (l.contracts?.length || 0), 0);
+  }
+  // Material table data source for sample contracts
+  sampleContracts: Array<{
+    contractNumber: string;
+    title: string;
+    description?: string;
+    value: number;
+    awardDate: Date;
+    leadId: string;
+    companyName: string;
+  }> = [];
+
+  tableFilter = '';
+  pageIndex = 0;
+  pageSize = 5;
+
+  get filteredSampleContracts() {
+    let contracts = this.sampleContracts;
+    if (this.tableFilter.trim()) {
+      const filter = this.tableFilter.trim().toLowerCase();
+      contracts = contracts.filter(c =>
+        c.contractNumber.toLowerCase().includes(filter) ||
+        c.title.toLowerCase().includes(filter) ||
+        (c.companyName?.toLowerCase().includes(filter) ?? false)
+      );
+    }
+    const start = this.pageIndex * this.pageSize;
+    return contracts.slice(start, start + this.pageSize);
+  }
+
+  get filteredSampleContractsTotal() {
+    let contracts = this.sampleContracts;
+    if (this.tableFilter.trim()) {
+      const filter = this.tableFilter.trim().toLowerCase();
+      contracts = contracts.filter(c =>
+        c.contractNumber.toLowerCase().includes(filter) ||
+        c.title.toLowerCase().includes(filter) ||
+        (c.companyName?.toLowerCase().includes(filter) ?? false)
+      );
+    }
+    return contracts.length;
+  }
+
+  updateSampleContracts() {
+    // Flatten sample contracts from filteredLeads
+    this.sampleContracts = (this.filteredLeads ?? []).flatMap(lead =>
+      (lead.contracts ?? [])
+        .filter(c => c.isSample)
+        .map(c => ({ ...c, leadId: lead.leadId, companyName: lead.companyName }))
+    );
+  }
+
+  onTableFilterChange(value: string) {
+    this.tableFilter = value;
+    this.pageIndex = 0;
+  }
+
+  onTablePageChange(event: { pageIndex: number; pageSize: number }) {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+  }
+  lastLatency: number | null = null;
+  lastSource: 'sample' | 'live' = 'sample';
+  showSampleData = true; // Live data OFF by default
+  // ...existing code...
+  showLabOverlay = false;
+  showSampleContracts = true;
+
+  toggleLabOverlay() {
+    this.showLabOverlay = !this.showLabOverlay;
+    this.showSampleContracts = true;
+  }
+  constructor() { /* empty */ }
+
+
+  toggleSampleData() {
+    if (!this.showSampleData) {
+      // Switch back to sample data
+      this.packLeads();
+      this.showSampleData = true;
+      this.lastSource = 'sample';
+    } else {
+      // Switch to live data (if available)
+      this.showSampleData = false;
+      this.lastSource = 'live';
+    }
+  }
   private http = inject(HttpClient);
   leads: LeadResponseDto[] = [];
   scriptOutput = '';
@@ -56,42 +208,36 @@ export class PackLeadsComponent implements OnInit {
   hasRun = true; // Start with hasRun true
   expandedLeads = new Set<string>();
   showNaicsCodes = true; // Toggle for NAICS code display
-  showSampleData = true; // Toggle for sample data display
+  // Removed duplicate declaration
 
   ngOnInit() {
-    // Auto-load leads on component initialization
-    this.packLeads();
+  // Auto-load leads on component initialization
+  this.showSampleData = true;
+  this.packLeads();
+  this.updateSampleContracts();
   }
 
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
       // Show all leads including sample data
       return this.leads;
+    } else {
+      // Show only live data (leads with probeStatus 'live')
+      return this.leads.filter(lead => lead.probeStatus === 'live');
     }
-    // Hide sample data - filter out leads AND their sample contracts
-    return this.leads
-      .map((lead) => {
-        // Filter out sample contracts from each lead
-        const nonSampleContracts =
-          lead.contracts?.filter((c) => !c.isSample) || [];
-        // Only include leads that have at least one non-sample contract
-        if (nonSampleContracts.length > 0) {
-          return {
-            ...lead,
-            contracts: nonSampleContracts,
-          };
-        }
-        return null;
-      })
-      .filter((lead) => lead !== null) as LeadResponseDto[];
   }
 
   get sampleCount(): number {
-    // Count total number of sample contracts across all leads
-    return this.leads.reduce((count, lead) => {
+    // Count total number of sample contracts in the current filteredLeads
+    return this.filteredLeads.reduce((count, lead) => {
       const sampleContracts = lead.contracts?.filter((c) => c.isSample) || [];
       return count + sampleContracts.length;
     }, 0);
+  }
+
+  get sampleLeadCount(): number {
+    // Count number of leads with at least one sample contract in filteredLeads
+    return this.filteredLeads.filter(lead => this.hasSampleContracts(lead)).length;
   }
 
   get realCount(): number {
@@ -148,13 +294,18 @@ export class PackLeadsComponent implements OnInit {
   packLeads() {
     this.loading = true;
     this.hasRun = true;
+    const start = performance.now();
     this.http
       .get<{ leads: LeadResponseDto[]; scriptOutput: string }>('/api/pack')
       .subscribe({
         next: (data) => {
           this.leads = data.leads;
+          this.updateSampleContracts();
           this.scriptOutput = data.scriptOutput;
           this.loading = false;
+          this.lastLatency = Math.round(performance.now() - start);
+          this.lastSource = 'sample';
+          this.showSampleData = true;
           console.log('Packed leads from MongoDB:', data);
           console.log('First lead contracts:', data.leads[0]?.contracts);
         },
@@ -167,20 +318,28 @@ export class PackLeadsComponent implements OnInit {
 
   testLiveSam() {
     this.loading = true;
+    const start = performance.now();
     this.http
       .get<{
         success: boolean;
         message: string;
         contractsFound: number;
-        contracts: unknown[];
+        contracts: LeadResponseDto[];
       }>('/api/sam/test-live')
       .subscribe({
         next: (data) => {
-          console.log('🔴 LIVE SAM.gov API Response:', data);
+          // Log green in browser console for live response
+          console.log('%c🟢 LIVE SAM.gov API Response:', 'color: green; font-weight: bold;', data);
           alert(
             `✅ SAM.gov API Test Complete!\n\nFound ${data.contractsFound} contracts under $250K with Small Business Set-Aside\n\nCheck console for full details.`
           );
+          // Set to live mode and show live contracts
+          this.showSampleData = false;
+          this.leads = data.contracts;
+          this.updateSampleContracts();
           this.loading = false;
+          this.lastLatency = Math.round(performance.now() - start);
+          this.lastSource = 'live';
         },
         error: (err) => {
           console.error('Error testing SAM.gov API:', err);

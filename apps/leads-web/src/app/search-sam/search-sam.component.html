@@ -89,6 +89,16 @@
 
       <button
         mat-stroked-button
+        color="accent"
+        (click)="showAllOpportunities()"
+        [disabled]="loading"
+      >
+        <mat-icon>public</mat-icon>
+        Show All Opportunities
+      </button>
+
+      <button
+        mat-stroked-button
         (click)="showNaicsCodes = !showNaicsCodes"
         *ngIf="leads.length > 0"
       >
@@ -148,6 +158,17 @@
           {{ realCount }} Real
         </mat-chip>
       </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div *ngIf="searchTotal > limit" style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
+      <button mat-stroked-button color="primary" (click)="prevPage()" [disabled]="offset === 0 || loading">
+        <mat-icon>chevron_left</mat-icon> Previous
+      </button>
+  <span>Page {{ (offset / limit) + 1 }} of {{ mathCeil(searchTotal / limit) }}</span>
+      <button mat-stroked-button color="primary" (click)="nextPage()" [disabled]="offset + limit >= searchTotal || loading">
+        Next <mat-icon>chevron_right</mat-icon>
+      </button>
     </div>
 
     <mat-spinner

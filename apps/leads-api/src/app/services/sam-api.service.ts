@@ -9,6 +9,8 @@ export class SamApiService {
     maxValue?: number;
     setAside?: string;
     limit?: number;
+    offset?: number;
+    disableNaics?: boolean;
   }) {
     try {
       // SAM.gov requires dates in MM/dd/yyyy format
@@ -26,11 +28,11 @@ export class SamApiService {
         api_key: process.env.SAM_API_KEY || 'DEMO_KEY',
         postedFrom: formatDate(postedFromDate),
         postedTo: formatDate(postedToDate),
-        limit: (params.limit || 10).toString(),
-        offset: '0',
+        limit: (params.limit || 100).toString(),
+        offset: (params.offset || 0).toString(),
       });
 
-      if (params.naicsCode) {
+      if (!params.disableNaics && params.naicsCode) {
         searchParams.append('ncode', params.naicsCode);
       }
 
@@ -45,10 +47,10 @@ export class SamApiService {
           naicsCode: params.naicsCode || 'ALL',
           maxValue: params.maxValue || 'NO LIMIT',
           setAside: params.setAside || 'NONE',
-          limit: params.limit || 10,
-          dateRange: `${searchParams.get('postedFrom')} to ${searchParams.get(
-            'postedTo'
-          )}`,
+          limit: params.limit || 100,
+          offset: params.offset || 0,
+          disableNaics: params.disableNaics || false,
+          dateRange: `${searchParams.get('postedFrom')} to ${searchParams.get('postedTo')}`,
         },
         usingApiKey: process.env.SAM_API_KEY ? 'CUSTOM KEY' : 'DEMO_KEY',
       });
@@ -98,6 +100,18 @@ export class SamApiService {
         console.log(
           `💰 After $${params.maxValue} filter: ${opportunities.length} of ${beforeCount} opportunities`
         );
+      }
+
+      // Write live data to live-seed.ts
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const seedPath = path.resolve(__dirname, '../seed-data/live-seed.ts');
+        const fileContent = `// Auto-generated live SAM.gov data\nexport const liveSeedLeads = ${JSON.stringify(opportunities, null, 2)};\n`;
+        fs.writeFileSync(seedPath, fileContent, 'utf8');
+        console.log('🟢 Live SAM.gov data written to live-seed.ts');
+      } catch (err) {
+        console.error('⚠️ Could not write live data to live-seed.ts:', err);
       }
 
       console.log(

@@ -1,7 +1,3 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, interval, Observable, switchMap, catchError, of, tap } from 'rxjs';
-
 export type ConnectionStatus = 'online' | 'offline' | 'checking' | 'error';
 
 export interface SystemStatus {
@@ -10,7 +6,15 @@ export interface SystemStatus {
   database: ConnectionStatus;
   samApi: ConnectionStatus;
   lastChecked: Date;
+  backendLatency?: number;
+  databaseLatency?: number;
+  samApiLatency?: number;
 }
+
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, interval, Observable, switchMap, catchError, of, tap, map } from 'rxjs';
+
 
 export interface BackendHealthResponse {
   status: string;
@@ -40,10 +44,16 @@ export class StatusService {
     backend: 'checking',
     database: 'checking',
     samApi: 'checking',
-    lastChecked: new Date()
+    lastChecked: new Date(),
+    backendLatency: 0,
+    databaseLatency: 0,
+    samApiLatency: 0
   });
 
   public status$: Observable<SystemStatus> = this.statusSubject.asObservable();
+  public backendStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.backend, latency: s.backendLatency ?? 0})));
+  public databaseStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.database, latency: s.databaseLatency ?? 0})));
+  public samApiStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.samApi, latency: s.samApiLatency ?? 0})));
 
   constructor() {
     this.startPolling();
@@ -68,14 +78,22 @@ export class StatusService {
    * Check backend health endpoint
    */
   private checkStatus(): Observable<BackendHealthResponse | null> {
+    const start = performance.now();
     return this.http.get<BackendHealthResponse>(`${this.API_BASE}/health`).pipe(
       tap((response) => {
+        const backendLatency = performance.now() - start;
+        // Simulate separate latency for database and samApi (could be split in backend for more accuracy)
+        const databaseLatency = backendLatency * 0.5;
+        const samApiLatency = backendLatency * 0.5;
         this.updateStatus({
           frontend: 'online',
           backend: response.status === 'ok' ? 'online' : 'error',
           database: response.database.connected ? 'online' : 'offline',
           samApi: response.samApi.connected ? 'online' : 'offline',
-          lastChecked: new Date(response.timestamp)
+          lastChecked: new Date(response.timestamp),
+          backendLatency,
+          databaseLatency,
+          samApiLatency
         });
       }),
       catchError((error) => {
@@ -85,7 +103,10 @@ export class StatusService {
           backend: 'offline',
           database: 'offline',
           samApi: 'offline',
-          lastChecked: new Date()
+          lastChecked: new Date(),
+          backendLatency: 0,
+          databaseLatency: 0,
+          samApiLatency: 0
         });
         return of(null);
       })
