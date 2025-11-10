@@ -1,16 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
-import { FormsModule } from '@angular/forms';
 
 interface LeadResponseDto {
   leadId: string;
@@ -35,40 +24,11 @@ interface LeadResponseDto {
 
 @Component({
   selector: 'app-search-sam',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatListModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatBadgeModule,
-    FormsModule,
-  ],
   templateUrl: './search-sam.component.html',
-  styleUrl: './search-sam.component.scss',
+  styleUrls: ['./search-sam.component.scss'],
+  standalone: false,
 })
 export class SearchSamComponent {
-  mathCeil(value: number): number {
-    return Math.ceil(value);
-  }
-  private http = inject(HttpClient);
-  term = '';
-  leads: LeadResponseDto[] = [];
-  searchTotal = 0;
-  loading = false;
-  hasRun = false;
-  expandedLeads = new Set<string>();
-  showNaicsCodes = true; // Toggle for NAICS code display
-  showSampleData = true; // Toggle for sample data display
-  disableNaics = false; // Toggle for NAICS filter
-  limit = 100;
-  offset = 0;
-
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
       // Show all leads including sample data
@@ -91,6 +51,22 @@ export class SearchSamComponent {
       })
       .filter((lead) => lead !== null) as LeadResponseDto[];
   }
+  mathCeil(value: number): number {
+    return Math.ceil(value);
+  }
+  private http = inject(HttpClient);
+  term = '';
+  leads: LeadResponseDto[] = [];
+  searchTotal = 0;
+  loading = false;
+  hasRun = false;
+  expandedLeads = new Set<string>();
+  showNaicsCodes = true; // Toggle for NAICS code display
+  showSampleData = true; // Toggle for sample data display
+  disableNaics = false; // Toggle for NAICS filter
+  limit = 100;
+  offset = 0;
+
 
   get sampleCount(): number {
     // Count total number of sample contracts across all leads

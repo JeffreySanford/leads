@@ -1,3 +1,59 @@
+// Controls row for top buttons
+.controls-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+// NAICS toggle button
+.naics-toggle-btn {
+  min-width: 120px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+// Row for chips and overlays
+.chip-row {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  align-items: center;
+}
+
+// Modal controls in lab overlay
+.lab-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+// Table filter row
+.table-filter-row {
+  margin-bottom: 16px;
+}
+
+// Table filter field
+.table-filter-field {
+  width: 300px;
+}
+
+// Sample contracts table
+.sample-contracts-table {
+  width: 100%;
+}
+
+// Main spinner
+.main-spinner {
+  margin: 20px auto;
+}
 @keyframes slideIn {
   from {
     opacity: 0;

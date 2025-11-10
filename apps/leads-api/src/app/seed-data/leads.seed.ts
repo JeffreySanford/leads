@@ -31,7 +31,7 @@ export const seedLeads = [
         value: 450000,
         awardDate: new Date('2024-01-15'),
         status: 'Active',
-        isSample: true,
+  sampleData: true,
         isTest: false,
       },
       {

@@ -46,9 +46,16 @@ export class AppService {
 
   async packLeads() {
     const leads = await firstValueFrom(this.leadsService.packLeads());
+    const isSample = leads.length > 0 && leads.every(lead => lead.contracts?.some(c => c.sampleData));
+    let scriptOutput = `Packed ${leads.length} leads from database${isSample ? ' (Sample Data)' : ''}`;
+    // If no records for specific NAICS, append zero records message
+    const naicsFiltered = leads.filter(lead => lead.naicsCode && lead.contracts && lead.contracts.length > 0);
+    if (naicsFiltered.length === 0) {
+      scriptOutput += ' | Zero records available for the selected NAICS.';
+    }
     return {
       leads,
-      scriptOutput: `Packed ${leads.length} leads from database`,
+      scriptOutput,
     };
   }
 

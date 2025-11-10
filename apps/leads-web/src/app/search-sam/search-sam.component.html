@@ -24,72 +24,26 @@
     <!-- Data Source Status -->
     <div
       *ngIf="leads.length > 0"
-      style="
-        background: linear-gradient(
-          135deg,
-          rgba(255, 152, 0, 0.1),
-          rgba(255, 193, 7, 0.1)
-        );
-        border-left: 4px solid #ff9800;
-        padding: 12px;
-        margin-bottom: 16px;
-        border-radius: 8px;
-      "
+      class="data-source-status"
     >
       <div
-        style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px"
+  class="data-source-status-header"
       >
-        <mat-icon style="color: #ff9800">info</mat-icon>
-        <strong style="color: #f57c00">Data Source Status</strong>
-      </div>
-      <div
-        style="
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
-          font-size: 13px;
-        "
-      >
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
+    <mat-icon>info</mat-icon>
+    <strong>Data Source Status</strong>
           <span><strong>SAM.gov API:</strong> 0 records</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
+        <div class="data-source-status-row">
+          <mat-icon>cloud_off</mat-icon>
           <span><strong>FPDS-NG:</strong> 0 records</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #f44336; font-size: 18px">cloud_off</mat-icon>
+        <div class="data-source-status-row">
+          <mat-icon>cloud_off</mat-icon>
           <span><strong>USA Spending:</strong> 0 records</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px">
-          <mat-icon style="color: #4caf50; font-size: 18px">science</mat-icon>
-          <span><strong>Seeded Data:</strong> {{ leads.length }} records</span>
-        </div>
-      </div>
-    </div>
-
-    <div
-      style="
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-      "
-    >
       <button
         mat-raised-button
-        color="primary"
-        (click)="search()"
-        [disabled]="!term || loading"
-      >
-        <mat-icon>search</mat-icon> Search
-      </button>
-
-      <button
-        mat-stroked-button
-        color="accent"
+        class="data-source-status-title"
         (click)="showAllOpportunities()"
         [disabled]="loading"
       >
@@ -99,61 +53,39 @@
 
       <button
         mat-stroked-button
+        class="data-source-status-row"
         (click)="showNaicsCodes = !showNaicsCodes"
-        *ngIf="leads.length > 0"
       >
-        <mat-icon>{{
-          showNaicsCodes ? 'visibility' : 'visibility_off'
-        }}</mat-icon>
+        <mat-icon>{{ showNaicsCodes ? 'visibility' : 'visibility_off' }}</mat-icon>
         {{ showNaicsCodes ? 'Hide' : 'Show' }} NAICS Codes
       </button>
 
       <button
         mat-stroked-button
+        class="data-source-status-row"
         (click)="showSampleData = !showSampleData"
-        *ngIf="leads.length > 0 && sampleCount > 0"
         [matBadge]="sampleCount.toString()"
         [matBadgeColor]="showSampleData ? 'primary' : 'warn'"
         matBadgeSize="small"
         [color]="showSampleData ? 'primary' : 'accent'"
       >
-        <mat-icon>{{
-          showSampleData ? 'visibility' : 'visibility_off'
-        }}</mat-icon>
+        <mat-icon>{{ showSampleData ? 'visibility' : 'visibility_off' }}</mat-icon>
         Sample Data: {{ showSampleData ? 'ON' : 'OFF' }}
       </button>
 
       <div
         *ngIf="leads.length > 0"
-        style="display: flex; gap: 8px; margin-left: auto"
+        class="search-controls-row"
       >
-        <mat-chip
-          *ngIf="sampleCount > 0"
-          style="
-            background: linear-gradient(135deg, #2196f3, #1976d2);
-            color: white;
-          "
-        >
+        <mat-chip *ngIf="sampleCount > 0" class="sample-indicator">
           <mat-icon>science</mat-icon>
           {{ sampleCount }} Sample
         </mat-chip>
-        <mat-chip
-          *ngIf="testCount > 0"
-          style="
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-          "
-        >
+        <mat-chip *ngIf="testCount > 0" class="test-indicator">
           <mat-icon>bug_report</mat-icon>
           {{ testCount }} Test
         </mat-chip>
-        <mat-chip
-          *ngIf="realCount > 0"
-          style="
-            background: linear-gradient(135deg, #4caf50, #388e3c);
-            color: white;
-          "
-        >
+        <mat-chip *ngIf="realCount > 0" class="real-indicator">
           <mat-icon>check_circle</mat-icon>
           {{ realCount }} Real
         </mat-chip>
@@ -161,7 +93,7 @@
     </div>
 
     <!-- Pagination Controls -->
-    <div *ngIf="searchTotal > limit" style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
+  <div *ngIf="searchTotal > limit" class="pagination-controls">
       <button mat-stroked-button color="primary" (click)="prevPage()" [disabled]="offset === 0 || loading">
         <mat-icon>chevron_left</mat-icon> Previous
       </button>
@@ -174,7 +106,7 @@
     <mat-spinner
       *ngIf="loading"
       diameter="40"
-      style="margin: 20px auto"
+      class="loading-spinner"
     ></mat-spinner>
 
     <div *ngIf="!loading && hasRun && leads.length === 0" class="no-results">

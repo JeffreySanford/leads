@@ -1,18 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
 
 interface LeadResponseDto {
   leadId: string;
@@ -32,33 +19,41 @@ interface LeadResponseDto {
     value: number;
     awardDate: Date;
     status: string;
-    isSample?: boolean;
+  sampleData?: boolean;
     isTest?: boolean;
   }[];
 }
 
 @Component({
   selector: 'app-pack-leads',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatCardModule,
-    MatListModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatBadgeModule,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-  ],
   templateUrl: './pack-leads.component.html',
-  styleUrl: './pack-leads.component.scss',
+  styleUrls: ['./pack-leads.component.scss'],
+  standalone: false,
 })
 export class PackLeadsComponent implements OnInit {
+  // NAICS code search state
+  selectedNaicsCodes: string[] = ['541512', '541519', '541511', '541513', '541690']; // Example default codes
+  naicsSearchMode: 'any' | 'all' = 'any';
+
+  removeNaicsCode(code: string) {
+    this.selectedNaicsCodes = this.selectedNaicsCodes.filter(c => c !== code);
+    this.triggerNaicsSearch();
+  }
+
+  toggleNaicsSearchMode() {
+    this.naicsSearchMode = this.naicsSearchMode === 'any' ? 'all' : 'any';
+    this.triggerNaicsSearch();
+  }
+
+  triggerNaicsSearch() {
+    // TODO: Implement search logic using selectedNaicsCodes and naicsSearchMode
+    // Example: Call backend API with cumulative NAICS string and mode
+    // this.searchLeadsByNaics(this.selectedNaicsCodes, this.naicsSearchMode);
+    console.log('Searching with NAICS:', this.selectedNaicsCodes, 'Mode:', this.naicsSearchMode);
+  }
+  // SAM.gov API status and latency for footer display
+  samApiStatus: 'connected' | 'loading' | 'error' = 'loading';
+  samApiLatency: number | null = null;
   showAllNaics = false;
 
   // Toggle for showing all NAICS connected records
@@ -161,7 +156,7 @@ export class PackLeadsComponent implements OnInit {
     // Flatten sample contracts from filteredLeads
     this.sampleContracts = (this.filteredLeads ?? []).flatMap(lead =>
       (lead.contracts ?? [])
-        .filter(c => c.isSample)
+  .filter(c => c.sampleData)
         .map(c => ({ ...c, leadId: lead.leadId, companyName: lead.companyName }))
     );
   }
@@ -230,7 +225,7 @@ export class PackLeadsComponent implements OnInit {
   get sampleCount(): number {
     // Count total number of sample contracts in the current filteredLeads
     return this.filteredLeads.reduce((count, lead) => {
-      const sampleContracts = lead.contracts?.filter((c) => c.isSample) || [];
+  const sampleContracts = lead.contracts?.filter((c) => c.sampleData) || [];
       return count + sampleContracts.length;
     }, 0);
   }
@@ -243,7 +238,7 @@ export class PackLeadsComponent implements OnInit {
   get realCount(): number {
     return this.leads.filter(
       (lead) =>
-        lead.contracts && lead.contracts.some((c) => !c.isSample && !c.isTest)
+  lead.contracts && lead.contracts.some((c) => !c.sampleData && !c.isTest)
     ).length;
   }
 
@@ -254,11 +249,11 @@ export class PackLeadsComponent implements OnInit {
   }
 
   hasSampleContracts(lead: LeadResponseDto): boolean {
-    return lead.contracts?.some((c) => c.isSample) || false;
+  return lead.contracts?.some((c) => c.sampleData) || false;
   }
 
   hasRealContracts(lead: LeadResponseDto): boolean {
-    return lead.contracts?.some((c) => !c.isSample) || false;
+  return lead.contracts?.some((c) => !c.sampleData) || false;
   }
 
   formatValue(value: number): string {

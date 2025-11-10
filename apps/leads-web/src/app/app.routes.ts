@@ -4,16 +4,16 @@ export const appRoutes: Route[] = [
   { path: '', redirectTo: '/pack', pathMatch: 'full' },
   {
     path: 'pack',
-    loadComponent: () =>
-      import('./pack-leads/pack-leads.component').then(
-        (m) => m.PackLeadsComponent
+    loadChildren: () =>
+      import('./pack-leads/pack-leads.module').then(
+        (m) => m.PackLeadsModule
       ),
   },
   {
     path: 'search',
-    loadComponent: () =>
-      import('./search-sam/search-sam.component').then(
-        (m) => m.SearchSamComponent
+    loadChildren: () =>
+      import('./search-sam/search-sam.module').then(
+        (m) => m.SearchSamModule
       ),
   },
 ];

@@ -7,41 +7,23 @@
     >
   </mat-card-header>
   <mat-card-content>
-    <!-- Improved Data Source Status -->
-    <div *ngIf="leads.length > 0 || lastSource === 'live'" class="data-source-status" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #f5f5f5; border-left: 4px solid #2196f3;">
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <!-- Backend API Status -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <mat-icon [style.color]="!loading ? '#4caf50' : '#ff9800'">cloud</mat-icon>
-          <strong>Backend API:</strong>
-          <span [style.color]="!loading ? '#4caf50' : '#ff9800'">{{ !loading ? 'Online' : 'Loading...' }}</span>
-        </div>
-        <!-- Database Status -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <mat-icon [style.color]="leads.length > 0 ? '#4caf50' : '#ff9800'">storage</mat-icon>
-          <strong>Database:</strong>
-          <span [style.color]="leads.length > 0 ? '#4caf50' : '#ff9800'">{{ leads.length > 0 ? 'Connected' : 'Loading...' }}</span>
-        </div>
-        <!-- SAM.gov API Status -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <mat-icon [style.color]="lastSource === 'live' ? '#4caf50' : '#2196f3'">cloud_done</mat-icon>
-          <strong>SAM.gov API:</strong>
-          <span [style.color]="lastSource === 'live' ? '#4caf50' : '#2196f3'">{{ lastSource === 'live' ? 'Online' : 'Sample Mode' }}</span>
-        </div>
-        <span style="color: #666; font-size: 13px;">Records: <strong>{{ filteredLeads.length }}</strong></span>
-        <span *ngIf="lastLatency !== null" style="color: #666; font-size: 13px;">Latency: <strong>{{ lastLatency }} ms</strong></span>
-      </div>
+    <!-- NAICS Code Search Bar -->
+    <div class="naics-search-bar">
+      <mat-chip-list>
+        <mat-chip *ngFor="let code of selectedNaicsCodes" [removable]="true" (removed)="removeNaicsCode(code)">
+          {{ code }}
+          <button matChipRemove aria-label="Remove NAICS code">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-chip>
+      </mat-chip-list>
+      <button mat-raised-button color="primary" (click)="toggleNaicsSearchMode()" class="naics-search-mode-btn">
+        <mat-icon>{{ naicsSearchMode === 'any' ? 'scatter_plot' : 'filter_list' }}</mat-icon>
+        {{ naicsSearchMode === 'any' ? 'Any of the words' : 'All of the words' }}
+      </button>
     </div>
 
-    <div
-      style="
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-      "
-    >
+    <div class="controls-row">
 
       <button
         mat-raised-button
@@ -53,7 +35,7 @@
       </button>
 
       <button
-        style="min-width: 120px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 0; margin-left: 0;"
+        class="naics-toggle-btn"
         (click)="showNaicsCodes = !showNaicsCodes"
         *ngIf="leads.length > 0"
       >
@@ -76,7 +58,7 @@
 
       <div
         *ngIf="leads.length > 0"
-        style="display: flex; gap: 16px; margin-left: auto; align-items: center;"
+        class="chip-row"
       >
         <mat-chip
           *ngIf="sampleCount > 0"
@@ -94,7 +76,7 @@
               <span class="lab-modal-title">Sample Contracts Lab</span>
               <button mat-icon-button (click)="showLabOverlay = false" class="lab-modal-close"><mat-icon>close</mat-icon></button>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div class="lab-modal-controls">
               <button mat-stroked-button color="primary" (click)="showSampleContracts = !showSampleContracts">
                 <mat-icon>{{ showSampleContracts ? 'description' : 'business' }}</mat-icon>
                 {{ showSampleContracts ? 'Show Sample Leads' : 'Show Sample Contracts' }}
@@ -102,14 +84,14 @@
             </div>
             <div *ngIf="showSampleContracts">
               <!-- Material Table for Sample Contracts -->
-              <div style="margin-bottom: 16px;">
-                <mat-form-field appearance="outline" style="width: 300px;">
+              <div class="table-filter-row">
+                <mat-form-field appearance="outline" class="table-filter-field">
                   <mat-label>Filter contracts</mat-label>
                   <input matInput [(ngModel)]="tableFilter" (ngModelChange)="onTableFilterChange($event)" placeholder="Search by number, title, company" />
                   <button mat-icon-button matSuffix *ngIf="tableFilter" (click)="onTableFilterChange('')"><mat-icon>close</mat-icon></button>
                 </mat-form-field>
               </div>
-              <table mat-table [dataSource]="filteredSampleContracts" class="mat-elevation-z2" style="width: 100%;">
+              <table mat-table [dataSource]="filteredSampleContracts" class="mat-elevation-z2 sample-contracts-table">
                 <!-- Contract Number Column -->
                 <ng-container matColumnDef="contractNumber">
                   <th mat-header-cell *matHeaderCellDef>Number</th>
@@ -189,7 +171,7 @@
     <mat-spinner
       *ngIf="loading"
       diameter="40"
-      style="margin: 20px auto"
+      class="main-spinner"
     ></mat-spinner>
 
     <div *ngIf="!loading && hasRun && leads.length === 0" class="no-results">
@@ -273,15 +255,15 @@
           <div
             *ngFor="let contract of lead.contracts"
             class="contract-detail"
-            [class.sample-contract]="contract.isSample"
-            [class.real-contract]="!contract.isSample && !contract.isTest"
+            [class.sample-contract]="contract.sampleData"
+            [class.real-contract]="!contract.sampleData && !contract.isTest"
             [class.test-contract]="contract.isTest"
           >
             <div class="contract-header">
               <mat-icon>description</mat-icon>
               <strong>{{ contract.contractNumber }}</strong>
               <span class="contract-badge">{{
-                contract.isSample ? 'SAMPLE' : contract.isTest ? 'TEST' : 'REAL'
+                contract.sampleData ? 'SAMPLE' : contract.isTest ? 'TEST' : 'REAL'
               }}</span>
             </div>
             <div class="contract-title">{{ contract.title }}</div>

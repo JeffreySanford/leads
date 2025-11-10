@@ -1,3 +1,75 @@
+// Data Source Status Styles
+.data-source-status {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 193, 7, 0.1));
+  border-left: 4px solid #ff9800;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.data-source-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  
+  mat-icon {
+    color: #ff9800;
+  }
+  strong {
+    color: #f57c00;
+  }
+}
+
+.data-source-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.data-source-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-source-status-title {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.search-term-field {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.search-controls-row {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.test-indicator {
+  background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+  color: white !important;
+  font-weight: 600;
+  margin-left: 8px;
+  mat-icon {
+    color: white;
+  }
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.loading-spinner {
+  margin: 20px auto;
+  display: block;
+}
 @keyframes slideIn {
   from {
     opacity: 0;
