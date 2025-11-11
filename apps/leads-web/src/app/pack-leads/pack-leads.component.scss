@@ -1,3 +1,33 @@
+// Test indicator chip
+.test-indicator {
+  background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+  color: white !important;
+  font-weight: 600;
+  margin-left: 8px;
+  mat-icon {
+    color: white;
+  }
+}
+
+// Real indicator chip
+.real-indicator {
+  background: linear-gradient(135deg, #4caf50, #388e3c) !important;
+  color: white !important;
+  font-weight: 600;
+  margin-left: 8px;
+  animation: glow 2s ease-in-out infinite;
+  mat-icon {
+    color: white;
+  }
+}
+
+// Business type chip set
+.business-type-chip-set {
+  display: inline-flex;
+  vertical-align: middle;
+  gap: 4px;
+  margin-left: 8px;
+}
 // Controls row for top buttons
 .controls-row {
   display: flex;
@@ -476,15 +506,38 @@ mat-chip-set {
   display: inline-flex;
   gap: 4px;
   margin-left: 8px;
+  flex-wrap: wrap;
 }
 
 mat-chip {
   font-size: 11px;
   min-height: 24px;
-  padding: 4px 8px;
+  padding: 2px 6px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-radius: 12px;
+  max-width: 80px;
+
+  button[matChipRemove] {
+    background: none !important;
+    border: none !important;
+    color: white !important;
+    margin-left: 4px;
+    padding: 2px;
+    min-width: auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
 
 .contracts-line {
@@ -601,4 +654,12 @@ mat-list-item:nth-child(5) {
   mat-icon {
     color: white;
   }
+}
+
+// NAICS search bar
+.naics-search-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }

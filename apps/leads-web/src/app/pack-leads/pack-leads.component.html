@@ -9,17 +9,14 @@
   <mat-card-content>
     <!-- NAICS Code Search Bar -->
     <div class="naics-search-bar">
-      <mat-chip-list>
+      <mat-chip-set>
         <mat-chip *ngFor="let code of selectedNaicsCodes" [removable]="true" (removed)="removeNaicsCode(code)">
           {{ code }}
-          <button matChipRemove aria-label="Remove NAICS code">
-            <mat-icon>close</mat-icon>
-          </button>
         </mat-chip>
-      </mat-chip-list>
+      </mat-chip-set>
       <button mat-raised-button color="primary" (click)="toggleNaicsSearchMode()" class="naics-search-mode-btn">
         <mat-icon>{{ naicsSearchMode === 'any' ? 'scatter_plot' : 'filter_list' }}</mat-icon>
-        {{ naicsSearchMode === 'any' ? 'Any of the words' : 'All of the words' }}
+        {{ naicsSearchMode === 'any' ? 'Any' : 'All' }}
       </button>
     </div>
 
@@ -147,20 +144,14 @@
         </div>
         <mat-chip
           *ngIf="testCount > 0"
-          style="
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-          "
+          class="test-indicator"
         >
           <mat-icon>bug_report</mat-icon>
           {{ testCount }} Test
         </mat-chip>
         <mat-chip
           *ngIf="realCount > 0"
-          style="
-            background: linear-gradient(135deg, #4caf50, #388e3c);
-            color: white;
-          "
+          class="real-indicator"
         >
           <mat-icon>check_circle</mat-icon>
           {{ realCount }} Real
@@ -216,7 +207,7 @@
           </span>
           <mat-chip-set
             *ngIf="lead.businessType && lead.businessType.length > 0"
-            style="display: inline-flex; vertical-align: middle"
+            class="business-type-chip-set"
           >
             <mat-chip *ngFor="let type of lead.businessType.slice(0, 2)">{{
               type

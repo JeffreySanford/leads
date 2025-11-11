@@ -1,4 +1,9 @@
 import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -6,7 +11,14 @@ import { Subject, takeUntil } from 'rxjs';
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [
+    RouterOutlet,
+    CommonModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatTooltipModule,
+  ],
 })
 export class App implements OnInit, OnDestroy {
   private statusService = inject(StatusService);
