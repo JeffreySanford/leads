@@ -1,5 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 interface LeadResponseDto {
   leadId: string;
@@ -28,7 +30,36 @@ interface LeadResponseDto {
   styleUrls: ['./search-sam.component.scss'],
   standalone: false,
 })
-export class SearchSamComponent {
+export class SearchSamComponent implements OnInit {
+  debugInfo = '';
+
+  http = inject(HttpClient);
+  router = inject(Router);
+  route = inject(ActivatedRoute);
+
+  ngOnInit() {
+    // Router debugging
+    this.debugInfo += `Component initialized at ${new Date().toISOString()}\n`;
+    this.debugInfo += `Current URL: ${this.router.url}\n`;
+    this.debugInfo += `Route path: ${this.route.snapshot.url.map(segment => segment.path).join('/')}\n`;
+    this.debugInfo += `Route params: ${JSON.stringify(this.route.snapshot.params)}\n`;
+    this.debugInfo += `Route query params: ${JSON.stringify(this.route.snapshot.queryParams)}\n`;
+
+    // Listen to router events
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.debugInfo += `NavigationEnd: ${event.url}\n`;
+        console.log('Search SAM Router Event:', event);
+      });
+
+    console.log('Search SAM Component Debug Info:', {
+      url: this.router.url,
+      route: this.route.snapshot,
+      params: this.route.snapshot.params,
+      queryParams: this.route.snapshot.queryParams
+    });
+  }
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
       // Show all leads including sample data
@@ -54,7 +85,6 @@ export class SearchSamComponent {
   mathCeil(value: number): number {
     return Math.ceil(value);
   }
-  private http = inject(HttpClient);
   term = '';
   leads: LeadResponseDto[] = [];
   searchTotal = 0;

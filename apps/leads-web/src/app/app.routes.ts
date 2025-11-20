@@ -10,7 +10,7 @@ export const appRoutes: Route[] = [
       ),
   },
   {
-    path: 'search',
+    path: 'search-sam',
     loadChildren: () =>
       import('./search-sam/search-sam.module').then(
         (m) => m.SearchSamModule
