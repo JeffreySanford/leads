@@ -10,4 +10,9 @@ const routes: Routes = [
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class SearchSamRoutingModule { }
+export class SearchSamRoutingModule {
+  constructor() {
+    console.log('🔍 SEARCH-SAM ROUTING: SearchSamRoutingModule loaded');
+    console.log('🔍 SEARCH-SAM ROUTING: Routes:', routes);
+  }
+}

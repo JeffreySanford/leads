@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -33,32 +33,38 @@ interface LeadResponseDto {
 export class SearchSamComponent implements OnInit {
   debugInfo = '';
 
-  http = inject(HttpClient);
-  router = inject(Router);
-  route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  constructor() {
+    console.log('🔍 SEARCH-SAM: Constructor called - component being instantiated');
+  }
 
   ngOnInit() {
+    console.log('🔍 SEARCH-SAM: ngOnInit called - component initialized');
+
     // Router debugging
     this.debugInfo += `Component initialized at ${new Date().toISOString()}\n`;
     this.debugInfo += `Current URL: ${this.router.url}\n`;
-    this.debugInfo += `Route path: ${this.route.snapshot.url.map(segment => segment.path).join('/')}\n`;
+    this.debugInfo += `Route path: ${this.route.snapshot.url.map((segment: any) => segment.path).join('/')}\n`;
     this.debugInfo += `Route params: ${JSON.stringify(this.route.snapshot.params)}\n`;
     this.debugInfo += `Route query params: ${JSON.stringify(this.route.snapshot.queryParams)}\n`;
+
+    console.log('🔍 SEARCH-SAM: Debug Info:', {
+      url: this.router.url,
+      route: this.route.snapshot,
+      params: this.route.snapshot.params,
+      queryParams: this.route.snapshot.queryParams
+    });
 
     // Listen to router events
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         this.debugInfo += `NavigationEnd: ${event.url}\n`;
-        console.log('Search SAM Router Event:', event);
+        console.log('🔍 SEARCH-SAM: Router Event:', event);
       });
-
-    console.log('Search SAM Component Debug Info:', {
-      url: this.router.url,
-      route: this.route.snapshot,
-      params: this.route.snapshot.params,
-      queryParams: this.route.snapshot.queryParams
-    });
   }
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
@@ -131,9 +137,8 @@ export class SearchSamComponent implements OnInit {
     return value.toLocaleString();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  calculateTotalValue(contracts: any[]): string {
-    const total = contracts.reduce((sum, contract) => sum + contract.value, 0);
+  calculateTotalValue(contracts: LeadResponseDto['contracts']): string {
+    const total = contracts?.reduce((sum, contract) => sum + (contract?.value || 0), 0) || 0;
     return total.toLocaleString();
   }
 

@@ -9,4 +9,8 @@ import { SearchSamRoutingModule } from './search-sam-routing.module';
   imports: [MaterialSharedModule, FormsModule, SearchSamRoutingModule],
   exports: [SearchSamComponent],
 })
-export class SearchSamModule {}
+export class SearchSamModule {
+  constructor() {
+    console.log('🔍 SEARCH-SAM MODULE: SearchSamModule loaded and instantiated');
+  }
+}
