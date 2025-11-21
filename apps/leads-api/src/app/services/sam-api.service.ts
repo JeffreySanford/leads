@@ -65,9 +65,11 @@ export class SamApiService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ SAM.gov API Error Response:', errorText);
-        throw new Error(
+        const error = new Error(
           `SAM.gov API returned ${response.status}: ${response.statusText}`
         );
+        (error as any).response = errorText;
+        throw error;
       }
 
       const data = (await response.json()) as {
@@ -123,8 +125,9 @@ export class SamApiService {
     } catch (error) {
       const err = error as Error;
       console.error('❌ SAM.gov API Error:', err.message);
-      console.warn('⚠️  Falling back to MOCK data');
-      return this.getMockSamData();
+      console.warn('⚠️  SAM.gov API unavailable - no fallback data');
+      // Throw the error instead of returning empty array
+      throw error;
     }
   }
 
@@ -142,45 +145,5 @@ export class SamApiService {
     return value ? parseFloat(value) : null;
   }
 
-  private getMockSamData() {
-    // Fallback mock data that looks like real SAM.gov response
-    return [
-      {
-        noticeId: 'SAM-MOCK-2024-001',
-        title: 'Small Business IT Support Services',
-        solicitationNumber: 'W912DY24R0123',
-        fullParentPathName:
-          'DEPT OF DEFENSE.DEPT OF THE ARMY.US ARMY CORPS OF ENGINEERS',
-        type: 'Solicitation',
-        typeOfSetAsideDescription: 'Total Small Business Set-Aside (FAR 19.5)',
-        typeOfSetAside: 'SBA',
-        baseAndAllOptionsValue: '225000',
-        naicsCode: '541512',
-        description:
-          'TEST DATA from SAM.gov API (using mock due to API key): IT support services for small Army installation. Includes help desk, server maintenance, network administration. Small Business Set-Aside opportunity under $250K. This would be a real contract if API key was configured.',
-        postedDate: new Date().toISOString(),
-        responseDeadLine: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        organizationType: 'OFFICE',
-        officeAddress: {
-          city: 'Washington',
-          state: 'DC',
-        },
-        pointOfContact: [
-          {
-            type: 'primary',
-            fullName: 'Contract Specialist',
-            email: 'contracts@army.mil',
-          },
-        ],
-        links: [
-          {
-            rel: 'self',
-            href: 'https://sam.gov/opp/SAM-MOCK-2024-001/view',
-          },
-        ],
-      },
-    ];
-  }
+
 }

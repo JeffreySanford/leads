@@ -40,7 +40,7 @@ export class LeadResponseDto {
     value: number;
     awardDate: Date;
     status: string;
-    sampleData?: boolean;
+    isSample?: boolean;
     isTest?: boolean;
   }[];
 }

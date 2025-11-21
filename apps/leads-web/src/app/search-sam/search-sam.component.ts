@@ -1,7 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
 
 interface LeadResponseDto {
   leadId: string;
@@ -30,42 +28,10 @@ interface LeadResponseDto {
   styleUrls: ['./search-sam.component.scss'],
   standalone: false,
 })
-export class SearchSamComponent implements OnInit {
+export class SearchSamComponent {
   debugInfo = '';
 
   private http = inject(HttpClient);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-
-  constructor() {
-    console.log('🔍 SEARCH-SAM: Constructor called - component being instantiated');
-  }
-
-  ngOnInit() {
-    console.log('🔍 SEARCH-SAM: ngOnInit called - component initialized');
-
-    // Router debugging
-    this.debugInfo += `Component initialized at ${new Date().toISOString()}\n`;
-    this.debugInfo += `Current URL: ${this.router.url}\n`;
-    this.debugInfo += `Route path: ${this.route.snapshot.url.map((segment: any) => segment.path).join('/')}\n`;
-    this.debugInfo += `Route params: ${JSON.stringify(this.route.snapshot.params)}\n`;
-    this.debugInfo += `Route query params: ${JSON.stringify(this.route.snapshot.queryParams)}\n`;
-
-    console.log('🔍 SEARCH-SAM: Debug Info:', {
-      url: this.router.url,
-      route: this.route.snapshot,
-      params: this.route.snapshot.params,
-      queryParams: this.route.snapshot.queryParams
-    });
-
-    // Listen to router events
-    this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: NavigationEnd) => {
-        this.debugInfo += `NavigationEnd: ${event.url}\n`;
-        console.log('🔍 SEARCH-SAM: Router Event:', event);
-      });
-  }
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
       // Show all leads including sample data
@@ -92,6 +58,7 @@ export class SearchSamComponent implements OnInit {
     return Math.ceil(value);
   }
   term = '';
+  naicsCode = '';
   leads: LeadResponseDto[] = [];
   searchTotal = 0;
   loading = false;
@@ -102,6 +69,16 @@ export class SearchSamComponent implements OnInit {
   disableNaics = false; // Toggle for NAICS filter
   limit = 100;
   offset = 0;
+
+  // Common NAICS codes for quick selection
+  commonNaicsCodes = [
+    { code: '541512', description: 'Computer Systems Design Services' },
+    { code: '541511', description: 'Custom Computer Programming Services' },
+    { code: '541513', description: 'Computer Facilities Management Services' },
+    { code: '541519', description: 'Other Computer Related Services' },
+    { code: '541690', description: 'Other Scientific and Technical Consulting' },
+    { code: '541611', description: 'Administrative Management and General Management' }
+  ];
 
 
   get sampleCount(): number {
@@ -125,6 +102,53 @@ export class SearchSamComponent implements OnInit {
     ).length;
   }
 
+  get selectedNaicsCodes(): string[] {
+    return this.naicsCode.split(',').map(c => c.trim()).filter(c => c);
+  }
+
+  addNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    if (currentCodes.includes(code)) {
+      // Remove if already selected
+      this.removeNaicsCode(code);
+    } else {
+      // Add if not selected
+      currentCodes.push(code);
+      this.naicsCode = currentCodes.join(', ');
+    }
+  }
+
+  removeNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    const index = currentCodes.indexOf(code);
+    if (index > -1) {
+      currentCodes.splice(index, 1);
+      this.naicsCode = currentCodes.join(', ');
+    }
+  }
+
+  toggleNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    const index = currentCodes.indexOf(code);
+    if (index > -1) {
+      // Remove the code
+      currentCodes.splice(index, 1);
+    } else {
+      // Add the code
+      currentCodes.push(code);
+    }
+    this.naicsCode = currentCodes.join(', ');
+  }
+
+  isNaicsCodeSelected(code: string): boolean {
+    return this.selectedNaicsCodes.includes(code);
+  }
+
+  getNaicsName(code: string): string {
+    const naics = this.commonNaicsCodes.find(n => n.code === code);
+    return naics ? naics.description : code;
+  }
+
   hasSampleContracts(lead: LeadResponseDto): boolean {
     return lead.contracts?.some((c) => c.isSample) || false;
   }
@@ -143,18 +167,10 @@ export class SearchSamComponent implements OnInit {
   }
 
   toggleExpand(leadId: string): void {
-    console.log('Toggle expand called for:', leadId);
     if (this.expandedLeads.has(leadId)) {
       this.expandedLeads.delete(leadId);
-      console.log('Collapsed:', leadId);
     } else {
       this.expandedLeads.add(leadId);
-      console.log(
-        'Expanded:',
-        leadId,
-        'Total expanded:',
-        this.expandedLeads.size
-      );
     }
   }
 
@@ -172,6 +188,7 @@ export class SearchSamComponent implements OnInit {
         '/api/search',
         {
           term: this.term,
+          naicsCode: this.naicsCode,
           disableNaics: this.disableNaics,
           limit: this.limit,
           offset: this.offset
@@ -182,10 +199,52 @@ export class SearchSamComponent implements OnInit {
           this.leads = data.leads || [];
           this.searchTotal = data.total || 0;
           this.loading = false;
-          console.log('Search results from MongoDB:', data);
         },
         error: (err) => {
           console.error('Error searching SAM:', err);
+          this.loading = false;
+        },
+      });
+  }
+
+  searchSamGov() {
+    this.loading = true;
+    console.log('🔍 Searching SAM.gov live with parameters:', {
+      naicsCode: this.naicsCode || 'ALL',
+      maxValue: 250000,
+      limit: 10
+    });
+
+    this.http
+      .post<{
+        success: boolean;
+        message: string;
+        contractsFound: number;
+        contracts: Record<string, unknown>[];
+        timestamp: Date;
+      }>(
+        '/api/search-sam-gov',
+        {
+          naicsCode: this.naicsCode || undefined,
+          maxValue: 250000,
+          limit: 10
+        }
+      )
+      .subscribe({
+        next: (data) => {
+          this.loading = false;
+          if (data.success) {
+            console.log(`✅ ${data.message}`);
+            if (data.contractsFound === 0) {
+              console.log('❌ No contracts found matching the search criteria');
+            }
+            // The detailed logging is done in the backend
+          } else {
+            console.error('❌ SAM.gov search failed:', data.message);
+          }
+        },
+        error: (err) => {
+          console.error('❌ Error searching SAM.gov:', err);
           this.loading = false;
         },
       });

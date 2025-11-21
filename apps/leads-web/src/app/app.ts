@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
 import { Subject, takeUntil } from 'rxjs';
-import { Router, NavigationStart, NavigationEnd, NavigationError, NavigationCancel, RoutesRecognized } from '@angular/router';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -39,28 +39,9 @@ export class App implements OnInit, OnDestroy {
     samApiLatency = 0;
 
   ngOnInit() {
-    // Router debugging
-    console.log('🔍 ROUTER DEBUG: App component initialized');
-    console.log('🔍 ROUTER DEBUG: Current URL:', this.router.url);
-    console.log('🔍 ROUTER DEBUG: Router config:', this.router.config);
-
-    // Subscribe to router events
-    this.router.events.pipe(takeUntil(this.destroy$)).subscribe(event => {
-      if (event instanceof NavigationStart) {
-        console.log('🚀 ROUTER EVENT: NavigationStart -', event.url);
-      } else if (event instanceof RoutesRecognized) {
-        console.log('🔍 ROUTER EVENT: RoutesRecognized -', event.url);
-        console.log('🔍 ROUTER EVENT: Route config:', event.state.root.firstChild?.routeConfig);
-      } else if (event instanceof NavigationEnd) {
-        console.log('✅ ROUTER EVENT: NavigationEnd -', event.url);
-        console.log('✅ ROUTER EVENT: Final URL:', event.urlAfterRedirects);
-      } else if (event instanceof NavigationError) {
-        console.error('❌ ROUTER EVENT: NavigationError -', event.error);
-        console.error('❌ ROUTER EVENT: Failed URL:', event.url);
-      } else if (event instanceof NavigationCancel) {
-        console.warn('⚠️ ROUTER EVENT: NavigationCancel -', event.url);
-        console.warn('⚠️ ROUTER EVENT: Reason:', event.reason);
-      }
+    // Subscribe to router events (no debug logging)
+    this.router.events.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      // Router event handling without debug logs
     });
 
     // Subscribe to status updates from the observable stream
@@ -80,13 +61,5 @@ export class App implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  onNavClick(route: string) {
-    console.log('🔍 NAVIGATION: Click detected on route:', route);
-    console.log('🔍 NAVIGATION: Current router state:', {
-      url: this.router.url,
-      navigated: this.router.navigated
-    });
   }
 }
