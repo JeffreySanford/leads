@@ -161,19 +161,38 @@ Probe Status: ${lead.probeStatus}
     );
   }
 
-  searchSam(term: string): Observable<SearchResultDto> {
-    const regex = new RegExp(term, 'i');
+  searchSam(term: string, naicsCode?: string): Observable<SearchResultDto> {
+    const termRegex = term ? new RegExp(term, 'i') : null;
+    const naicsRegex = naicsCode ? new RegExp(naicsCode.replace(/\s*,\s*/g, '|'), 'i') : null;
+
+    const query: Record<string, unknown> = {};
+
+    // Build query conditions
+    const orConditions = [];
+
+    if (termRegex) {
+      orConditions.push(
+        { companyName: termRegex },
+        { naicsDescription: termRegex },
+        { city: termRegex },
+        { stateCode: termRegex }
+      );
+    }
+
+    if (naicsRegex) {
+      orConditions.push({ naicsCode: naicsRegex });
+    }
+
+    // If no search criteria, return empty result
+    if (orConditions.length === 0) {
+      return of({ total: 0, leads: [] });
+    }
+
+    query.$or = orConditions;
+
     return from(
       this.leadModel
-        .find({
-          $or: [
-            { companyName: regex },
-            { naicsCode: regex },
-            { naicsDescription: regex },
-            { city: regex },
-            { stateCode: regex },
-          ],
-        })
+        .find(query)
         .select(
           'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
         )
@@ -184,6 +203,13 @@ Probe Status: ${lead.probeStatus}
         leads: (leads as Lead[]).map((lead) => this.toResponseDto(lead)),
       }))
     );
+  }
+
+  async saveLeadIfNotExists(leadDto: LeadResponseDto): Promise<void> {
+    const exists = await this.leadModel.exists({ leadId: leadDto.leadId });
+    if (!exists) {
+      await this.leadModel.create(leadDto);
+    }
   }
 
   private toResponseDto(lead: Lead): LeadResponseDto {

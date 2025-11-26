@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 interface LeadResponseDto {
@@ -19,7 +19,8 @@ interface LeadResponseDto {
     value: number;
     awardDate: Date;
     status: string;
-  sampleData?: boolean;
+    sampleData?: boolean;
+    isSample?: boolean;
     isTest?: boolean;
   }[];
 }
@@ -35,9 +36,31 @@ export class PackLeadsComponent implements OnInit {
   selectedNaicsCodes: string[] = ['541512', '541519', '541511', '541513', '541690']; // Example default codes
   naicsSearchMode: 'any' | 'all' = 'any';
 
-  removeNaicsCode(code: string) {
-    this.selectedNaicsCodes = this.selectedNaicsCodes.filter(c => c !== code);
-    this.triggerNaicsSearch();
+  private naicsNames: Record<string, string> = {
+    '541512': 'Computer Systems Design Services',
+    '541511': 'Custom Computer Programming Services',
+    '541513': 'Computer Facilities Management Services',
+    '541519': 'Other Computer Related Services',
+    '541690': 'Other Scientific and Technical Consulting Services (Cybersecurity)',
+  };
+
+  getNaicsName(code: string): string {
+    return this.naicsNames[code] || code;
+  }
+
+  addNaicsCode(code: string): void {
+    if (!this.selectedNaicsCodes.includes(code)) {
+      this.selectedNaicsCodes.push(code);
+      this.triggerNaicsSearch();
+    }
+  }
+
+  removeNaicsCode(code: string): void {
+    const index = this.selectedNaicsCodes.indexOf(code);
+    if (index > -1) {
+      this.selectedNaicsCodes.splice(index, 1);
+      this.triggerNaicsSearch();
+    }
   }
 
   toggleNaicsSearchMode() {
@@ -49,7 +72,6 @@ export class PackLeadsComponent implements OnInit {
     // TODO: Implement search logic using selectedNaicsCodes and naicsSearchMode
     // Example: Call backend API with cumulative NAICS string and mode
     // this.searchLeadsByNaics(this.selectedNaicsCodes, this.naicsSearchMode);
-    console.log('Searching with NAICS:', this.selectedNaicsCodes, 'Mode:', this.naicsSearchMode);
   }
   // SAM.gov API status and latency for footer display
   samApiStatus: 'connected' | 'loading' | 'error' = 'loading';
@@ -110,8 +132,8 @@ export class PackLeadsComponent implements OnInit {
   get samContractTotal() {
     return this.leads.filter(l => l.probeStatus === 'live').reduce((sum, l) => sum + (l.contracts?.length || 0), 0);
   }
-  // Material table data source for sample contracts
-  sampleContracts: Array<{
+  // Material table data source for displayed contracts (sample or live based on mode)
+  displayedContracts: Array<{
     contractNumber: string;
     title: string;
     description?: string;
@@ -125,8 +147,8 @@ export class PackLeadsComponent implements OnInit {
   pageIndex = 0;
   pageSize = 5;
 
-  get filteredSampleContracts() {
-    let contracts = this.sampleContracts;
+  get filteredDisplayedContracts() {
+    let contracts = this.displayedContracts;
     if (this.tableFilter.trim()) {
       const filter = this.tableFilter.trim().toLowerCase();
       contracts = contracts.filter(c =>
@@ -139,8 +161,8 @@ export class PackLeadsComponent implements OnInit {
     return contracts.slice(start, start + this.pageSize);
   }
 
-  get filteredSampleContractsTotal() {
-    let contracts = this.sampleContracts;
+  get filteredDisplayedContractsTotal() {
+    let contracts = this.displayedContracts;
     if (this.tableFilter.trim()) {
       const filter = this.tableFilter.trim().toLowerCase();
       contracts = contracts.filter(c =>
@@ -152,13 +174,23 @@ export class PackLeadsComponent implements OnInit {
     return contracts.length;
   }
 
-  updateSampleContracts() {
-    // Flatten sample contracts from filteredLeads
-    this.sampleContracts = (this.filteredLeads ?? []).flatMap(lead =>
-      (lead.contracts ?? [])
-  .filter(c => c.sampleData)
-        .map(c => ({ ...c, leadId: lead.leadId, companyName: lead.companyName }))
-    );
+  updateDisplayedContracts() {
+    // When showing sample data, display sample contracts
+    // When showing live data, display live contracts (filtering out sample data)
+    if (this.showSampleData) {
+      this.displayedContracts = (this.filteredLeads ?? []).flatMap(lead =>
+        (lead.contracts ?? [])
+          .filter(c => c.sampleData || c.isSample)
+          .map(c => ({ ...c, leadId: lead.leadId, companyName: lead.companyName }))
+      );
+    } else {
+      // In live mode, show only live contracts (not sample data)
+      this.displayedContracts = (this.filteredLeads ?? []).flatMap(lead =>
+        (lead.contracts ?? [])
+          .filter(c => !c.sampleData && !c.isSample && !c.isTest)
+          .map(c => ({ ...c, leadId: lead.leadId, companyName: lead.companyName }))
+      );
+    }
   }
 
   onTableFilterChange(value: string) {
@@ -170,6 +202,7 @@ export class PackLeadsComponent implements OnInit {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
   }
+  lastApiError: string | null = null;
   lastLatency: number | null = null;
   lastSource: 'sample' | 'live' = 'sample';
   showSampleData = true; // Live data OFF by default
@@ -182,18 +215,19 @@ export class PackLeadsComponent implements OnInit {
     this.showSampleContracts = true;
   }
   constructor() { /* empty */ }
+  private cdr = inject(ChangeDetectorRef);
 
 
   toggleSampleData() {
+    if (this.isSwitching) return;
     if (!this.showSampleData) {
       // Switch back to sample data
-      this.packLeads();
       this.showSampleData = true;
+      this.packLeads();
       this.lastSource = 'sample';
     } else {
-      // Switch to live data (if available)
-      this.showSampleData = false;
-      this.lastSource = 'live';
+      // Switch to live data from SAM.gov
+      this.testLiveSam();
     }
   }
   private http = inject(HttpClient);
@@ -203,13 +237,14 @@ export class PackLeadsComponent implements OnInit {
   hasRun = true; // Start with hasRun true
   expandedLeads = new Set<string>();
   showNaicsCodes = true; // Toggle for NAICS code display
+  isSwitching = false; // Prevent accidental double clicks
   // Removed duplicate declaration
 
   ngOnInit() {
   // Auto-load leads on component initialization
   this.showSampleData = true;
   this.packLeads();
-  this.updateSampleContracts();
+  this.updateDisplayedContracts();
   }
 
   get filteredLeads(): LeadResponseDto[] {
@@ -217,22 +252,22 @@ export class PackLeadsComponent implements OnInit {
       // Show all leads including sample data
       return this.leads;
     } else {
-      // Show only live data (leads with probeStatus 'live')
-      return this.leads.filter(lead => lead.probeStatus === 'live');
+      // In live mode, show only leads that have live (non-sample) contracts
+      return this.leads.filter(lead =>
+        lead.contracts && lead.contracts.some(c => !c.sampleData && !c.isSample && !c.isTest)
+      );
     }
   }
 
   get sampleCount(): number {
-    // Count total number of sample contracts in the current filteredLeads
-    return this.filteredLeads.reduce((count, lead) => {
-  const sampleContracts = lead.contracts?.filter((c) => c.sampleData) || [];
-      return count + sampleContracts.length;
-    }, 0);
+    // Count total number of sample contracts that would be displayed in sample mode
+    return this.filteredLeads.flatMap(lead =>
+      (lead.contracts ?? []).filter(c => c.sampleData || c.isSample)
+    ).length;
   }
 
-  get sampleLeadCount(): number {
-    // Count number of leads with at least one sample contract in filteredLeads
-    return this.filteredLeads.filter(lead => this.hasSampleContracts(lead)).length;
+  getCurrentModeContractCount(): number {
+    return this.filteredLeads.length;
   }
 
   get realCount(): number {
@@ -249,7 +284,7 @@ export class PackLeadsComponent implements OnInit {
   }
 
   hasSampleContracts(lead: LeadResponseDto): boolean {
-  return lead.contracts?.some((c) => c.sampleData) || false;
+  return lead.contracts?.some((c) => c.sampleData || c.isSample) || false;
   }
 
   hasRealContracts(lead: LeadResponseDto): boolean {
@@ -267,18 +302,10 @@ export class PackLeadsComponent implements OnInit {
   }
 
   toggleExpand(leadId: string): void {
-    console.log('Toggle expand called for:', leadId);
     if (this.expandedLeads.has(leadId)) {
       this.expandedLeads.delete(leadId);
-      console.log('Collapsed:', leadId);
     } else {
       this.expandedLeads.add(leadId);
-      console.log(
-        'Expanded:',
-        leadId,
-        'Total expanded:',
-        this.expandedLeads.size
-      );
     }
   }
 
@@ -290,19 +317,18 @@ export class PackLeadsComponent implements OnInit {
     this.loading = true;
     this.hasRun = true;
     const start = performance.now();
+    const mode = this.showSampleData ? 'sample' : 'live';
     this.http
-      .get<{ leads: LeadResponseDto[]; scriptOutput: string }>('/api/pack')
+      .get<{ leads: LeadResponseDto[]; scriptOutput: string }>(`/api/pack?mode=${mode}`)
       .subscribe({
         next: (data) => {
           this.leads = data.leads;
-          this.updateSampleContracts();
+          this.lastApiError = null; // Clear any previous API errors
+          this.updateDisplayedContracts();
           this.scriptOutput = data.scriptOutput;
           this.loading = false;
           this.lastLatency = Math.round(performance.now() - start);
           this.lastSource = 'sample';
-          this.showSampleData = true;
-          console.log('Packed leads from MongoDB:', data);
-          console.log('First lead contracts:', data.leads[0]?.contracts);
         },
         error: (err) => {
           console.error('Error packing leads:', err);
@@ -313,6 +339,7 @@ export class PackLeadsComponent implements OnInit {
 
   testLiveSam() {
     this.loading = true;
+    this.isSwitching = true;
     const start = performance.now();
     this.http
       .get<{
@@ -320,28 +347,49 @@ export class PackLeadsComponent implements OnInit {
         message: string;
         contractsFound: number;
         contracts: LeadResponseDto[];
+        quota?: string;
+        timestamp: Date;
       }>('/api/sam/test-live')
-      .subscribe({
-        next: (data) => {
+      .subscribe(
+        (data) => {
+          if (!data.success) {
+            // API error, such as rate limit
+            const errorMessage = data.quota ? `${data.message} ${data.quota}` : data.message;
+            this.lastApiError = errorMessage;
+            alert(`❌ Found 0 contracts - API Error: ${errorMessage}`);
+            // Switch to live mode to show the error
+            this.packLeads();
+            this.showSampleData = false;
+            this.updateDisplayedContracts();
+            this.cdr.detectChanges();
+            this.loading = false;
+            setTimeout(() => this.isSwitching = false, 3000);
+            return;
+          }
           // Log green in browser console for live response
           console.log('%c🟢 LIVE SAM.gov API Response:', 'color: green; font-weight: bold;', data);
           alert(
             `✅ SAM.gov API Test Complete!\n\nFound ${data.contractsFound} contracts under $250K with Small Business Set-Aside\n\nCheck console for full details.`
           );
-          // Set to live mode and show live contracts
+          // Load all leads from database (including newly saved live data)
+          this.packLeads();
+          // Set to live mode
           this.showSampleData = false;
-          this.leads = data.contracts;
-          this.updateSampleContracts();
+          this.lastApiError = null; // Clear any previous API errors
+          this.updateDisplayedContracts();
           this.loading = false;
           this.lastLatency = Math.round(performance.now() - start);
           this.lastSource = 'live';
+          setTimeout(() => this.isSwitching = false, 3000);
         },
-        error: (err) => {
+        (err) => {
           console.error('Error testing SAM.gov API:', err);
+          this.lastApiError = 'SAM.gov API access failed. Please check your API key.';
           alert('❌ SAM.gov API test failed. Check console for details.');
           this.loading = false;
-        },
-      });
+          setTimeout(() => this.isSwitching = false, 3000);
+        }
+      );
   }
 
   searchNdIt() {
@@ -354,8 +402,8 @@ export class PackLeadsComponent implements OnInit {
         naicsCodesSearched: string[];
         contracts: unknown[];
       }>('/api/sam/nd-it')
-      .subscribe({
-        next: (data) => {
+      .subscribe(
+        (data) => {
           console.log('🔵 North Dakota IT Contracts Response:', data);
 
           const naicsDetails = `
@@ -385,11 +433,11 @@ export class PackLeadsComponent implements OnInit {
 
           this.loading = false;
         },
-        error: (err) => {
+        (err) => {
           console.error('Error searching ND IT contracts:', err);
           alert('❌ ND IT contract search failed. Check console for details.');
           this.loading = false;
-        },
-      });
+        }
+      );
   }
 }

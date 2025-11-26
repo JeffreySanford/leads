@@ -44,10 +44,19 @@ export class AppService {
   }
 
 
-  async packLeads() {
+  async packLeads(mode?: string) {
     const leads = await firstValueFrom(this.leadsService.packLeads());
-    const isSample = leads.length > 0 && leads.every(lead => lead.contracts?.some(c => c.sampleData));
-    let scriptOutput = `Packed ${leads.length} leads from database${isSample ? ' (Sample Data)' : ''}`;
+    if (mode === 'live') {
+      const filtered = leads.filter(lead =>
+        lead.contracts && lead.contracts.every(c => !c.isSample && !c.isTest)
+      );
+      return {
+        leads: filtered,
+        scriptOutput: `🌱 Loaded ${filtered.length} live leads (filtered out sample data)`,
+      };
+    }
+    const isSample = leads.length > 0 && leads.every(lead => lead.contracts?.some(c => c.isSample));
+    let scriptOutput = isSample ? `🌱 Seeding database with North Dakota SAM.gov leads...` : `${leads.length} records`;
     // If no records for specific NAICS, append zero records message
     const naicsFiltered = leads.filter(lead => lead.naicsCode && lead.contracts && lead.contracts.length > 0);
     if (naicsFiltered.length === 0) {
@@ -67,8 +76,8 @@ export class AppService {
     return this.leadsService.probeSamVerbose(leadId);
   }
 
-  async searchSam(term: string) {
-    const searchResult = await firstValueFrom(this.leadsService.searchSam(term));
+  async searchSam(term: string, naicsCode?: string) {
+    const searchResult = await firstValueFrom(this.leadsService.searchSam(term, naicsCode));
     return {
       results: searchResult.leads.map(
         (lead: LeadResponseDto) =>
@@ -87,35 +96,44 @@ export class AppService {
         setAside: 'SBA', // Small Business Set-Aside
         limit: 5,
       });
+
+      // Map to LeadResponseDto format
+      const leadDtos: LeadResponseDto[] = contracts.map((contract: Record<string, any>) => ({
+        leadId: contract.noticeId,
+        companyName: contract.title,
+        naicsCode: contract.naicsCode,
+        naicsDescription: contract.typeOfSetAsideDescription,
+        city: '',
+        stateCode: '',
+        businessType: [],
+        registrationStatus: contract.type,
+        probeStatus: 'live',
+        lastProbed: contract.postedDate ? new Date(contract.postedDate) : undefined,
+        contracts: [
+          {
+            contractNumber: contract.solicitationNumber,
+            title: contract.title,
+            description: contract.agency,
+            value: Number(contract.baseAndAllOptionsValue) || 0,
+            awardDate: contract.postedDate ? new Date(contract.postedDate) : new Date(),
+            status: 'Active',
+            isSample: false,
+            isTest: false,
+          },
+        ],
+      }));
+
+      // Save to database (avoid duplicates by leadId)
+      for (const leadDto of leadDtos) {
+        await this.leadsService.saveLeadIfNotExists(leadDto);
+      }
+
       return {
         success: true,
         message:
           'SAM.gov API Test - Fetching real contracts under $250K with Small Business Set-Aside',
         contractsFound: contracts.length,
-        contracts: contracts.map((contract: Record<string, any>) => ({
-          leadId: contract.noticeId,
-          companyName: contract.title,
-          naicsCode: contract.naicsCode,
-          naicsDescription: contract.typeOfSetAsideDescription,
-          city: '',
-          stateCode: '',
-          businessType: [],
-          registrationStatus: contract.type,
-          probeStatus: 'live',
-          lastProbed: contract.postedDate ? new Date(contract.postedDate) : undefined,
-          contracts: [
-            {
-              contractNumber: contract.solicitationNumber,
-              title: contract.title,
-              description: contract.agency,
-              value: Number(contract.baseAndAllOptionsValue) || 0,
-              awardDate: contract.postedDate ? new Date(contract.postedDate) : new Date(),
-              status: 'Active',
-              isSample: false,
-              isTest: false,
-            },
-          ],
-        })),
+        contracts: leadDtos,
         timestamp: new Date(),
       };
     } catch (error: unknown) {

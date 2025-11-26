@@ -10,7 +10,7 @@
     <!-- NAICS Code Search Bar -->
     <div class="naics-search-bar">
       <mat-chip-set>
-        <mat-chip *ngFor="let code of selectedNaicsCodes" [removable]="true" (removed)="removeNaicsCode(code)">
+        <mat-chip *ngFor="let code of selectedNaicsCodes" [removable]="true" (removed)="removeNaicsCode(code)" matTooltip="{{ getNaicsName(code) }}">
           {{ code }}
         </mat-chip>
       </mat-chip-set>
@@ -28,135 +28,31 @@
         (click)="searchNdIt()"
         [disabled]="loading"
       >
-        <mat-icon>search</mat-icon> Search ND IT Contracts
+        <mat-icon>search</mat-icon> ND IT
       </button>
 
       <button
         class="naics-toggle-btn"
         (click)="showNaicsCodes = !showNaicsCodes"
-        *ngIf="leads.length > 0"
       >
-          <mat-icon>{{ showNaicsCodes ? 'visibility' : 'visibility_off' }}</mat-icon>
-          {{ showNaicsCodes ? 'Hide All' : 'Show All' }} NAICS Codes
+        <mat-icon>{{ showNaicsCodes ? 'visibility' : 'visibility_off' }}</mat-icon>
+        {{ showNaicsCodes ? 'Hide' : 'Show' }} NAICS
       </button>
 
       <button
         mat-stroked-button
         (click)="toggleSampleData()"
-        *ngIf="leads.length > 0"
-        [matBadge]="sampleCount.toString()"
+        [matBadge]="getCurrentModeContractCount().toString()"
         [matBadgeColor]="showSampleData ? 'primary' : 'warn'"
-        matBadgeSize="small"
+        [matBadgeSize]="'small'"
         [color]="showSampleData ? 'primary' : 'accent'"
+        [disabled]="loading || isSwitching"
       >
         <mat-icon>{{ showSampleData ? 'visibility' : 'visibility_off' }}</mat-icon>
-        {{ showSampleData ? 'Sample Data: ON' : 'Live Data: ON' }}
+        {{ showSampleData ? 'Sample' : 'Live' }}
       </button>
 
-      <div
-        *ngIf="leads.length > 0"
-        class="chip-row"
-      >
-        <mat-chip
-          *ngIf="sampleCount > 0"
-          class="sample-indicator sample-chip"
-          matTooltip="Show tracked sample contracts"
-          (click)="toggleLabOverlay()"
-        >
-          <mat-icon>flask</mat-icon>
-          {{ sampleCount }} Contracts
-        </mat-chip>
-        <div *ngIf="showLabOverlay" class="lab-overlay">
-          <div class="lab-modal">
-            <div class="lab-modal-header">
-              <mat-icon class="lab-modal-icon">flask</mat-icon>
-              <span class="lab-modal-title">Sample Contracts Lab</span>
-              <button mat-icon-button (click)="showLabOverlay = false" class="lab-modal-close"><mat-icon>close</mat-icon></button>
-            </div>
-            <div class="lab-modal-controls">
-              <button mat-stroked-button color="primary" (click)="showSampleContracts = !showSampleContracts">
-                <mat-icon>{{ showSampleContracts ? 'description' : 'business' }}</mat-icon>
-                {{ showSampleContracts ? 'Show Sample Leads' : 'Show Sample Contracts' }}
-              </button>
-            </div>
-            <div *ngIf="showSampleContracts">
-              <!-- Material Table for Sample Contracts -->
-              <div class="table-filter-row">
-                <mat-form-field appearance="outline" class="table-filter-field">
-                  <mat-label>Filter contracts</mat-label>
-                  <input matInput [(ngModel)]="tableFilter" (ngModelChange)="onTableFilterChange($event)" placeholder="Search by number, title, company" />
-                  <button mat-icon-button matSuffix *ngIf="tableFilter" (click)="onTableFilterChange('')"><mat-icon>close</mat-icon></button>
-                </mat-form-field>
-              </div>
-              <table mat-table [dataSource]="filteredSampleContracts" class="mat-elevation-z2 sample-contracts-table">
-                <!-- Contract Number Column -->
-                <ng-container matColumnDef="contractNumber">
-                  <th mat-header-cell *matHeaderCellDef>Number</th>
-                  <td mat-cell *matCellDef="let contract">{{ contract.contractNumber }}</td>
-                </ng-container>
-                <!-- Title Column -->
-                <ng-container matColumnDef="title">
-                  <th mat-header-cell *matHeaderCellDef>Title</th>
-                  <td mat-cell *matCellDef="let contract">{{ contract.title }}</td>
-                </ng-container>
-                <!-- Company Column -->
-                <ng-container matColumnDef="companyName">
-                  <th mat-header-cell *matHeaderCellDef>Company</th>
-                  <td mat-cell *matCellDef="let contract">{{ contract.companyName }}</td>
-                </ng-container>
-                <!-- Value Column -->
-                <ng-container matColumnDef="value">
-                  <th mat-header-cell *matHeaderCellDef>Value</th>
-                  <td mat-cell *matCellDef="let contract">${{ contract.value | number }}</td>
-                </ng-container>
-                <!-- Award Date Column -->
-                <ng-container matColumnDef="awardDate">
-                  <th mat-header-cell *matHeaderCellDef>Awarded</th>
-                  <td mat-cell *matCellDef="let contract">{{ contract.awardDate | date:'mediumDate' }}</td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="['contractNumber', 'title', 'companyName', 'value', 'awardDate']"></tr>
-                <tr mat-row *matRowDef="let row; columns: ['contractNumber', 'title', 'companyName', 'value', 'awardDate'];"></tr>
-              </table>
-              <mat-paginator
-                [length]="filteredSampleContractsTotal"
-                [pageSize]="pageSize"
-                [pageIndex]="pageIndex"
-                [pageSizeOptions]="[5, 10, 20]"
-                (page)="onTablePageChange($event)"
-                showFirstLastButtons>
-              </mat-paginator>
-              <div *ngIf="filteredSampleContractsTotal === 0" class="lab-contract-empty">No sample contracts found.</div>
-            </div>
-            <div *ngIf="!showSampleContracts">
-              <!-- Sample Leads Table Placeholder -->
-              <div *ngIf="filteredLeads.length > 0">
-                <div *ngFor="let lead of filteredLeads">
-                  <div *ngIf="hasSampleContracts(lead)" class="lab-contract">
-                    <div class="lab-contract-title">{{ lead.companyName }} ({{ lead.leadId }})</div>
-                    <div class="lab-contract-description">{{ lead.naicsDescription }} | {{ lead.city }}, {{ lead.stateCode }}</div>
-                    <div class="lab-contract-info">Contracts: {{ lead.contracts?.length || 0 }}</div>
-                  </div>
-                </div>
-              </div>
-              <div *ngIf="filteredLeads.length === 0" class="lab-contract-empty">No sample leads found.</div>
-            </div>
-          </div>
-        </div>
-        <mat-chip
-          *ngIf="testCount > 0"
-          class="test-indicator"
-        >
-          <mat-icon>bug_report</mat-icon>
-          {{ testCount }} Test
-        </mat-chip>
-        <mat-chip
-          *ngIf="realCount > 0"
-          class="real-indicator"
-        >
-          <mat-icon>check_circle</mat-icon>
-          {{ realCount }} Real
-        </mat-chip>
-      </div>
+
     </div>
 
     <mat-spinner
@@ -165,12 +61,17 @@
       class="main-spinner"
     ></mat-spinner>
 
-    <div *ngIf="!loading && hasRun && leads.length === 0" class="no-results">
+    <div *ngIf="!loading && hasRun && filteredLeads.length === 0" class="no-results">
       <mat-icon color="warn">error_outline</mat-icon>
-      <p class="error-text">No leads found</p>
+      <p class="error-text">
+        No leads found
+      </p>
+      <p *ngIf="!showSampleData && lastApiError" class="error-hint">
+        {{ lastApiError }}
+      </p>
     </div>
 
-    <div *ngIf="!loading && scriptOutput" class="script-output">
+    <div *ngIf="!loading && scriptOutput && !(!showSampleData && filteredLeads.length === 0)" class="script-output">
       <mat-icon>info</mat-icon>
       <span>{{ scriptOutput }}</span>
     </div>

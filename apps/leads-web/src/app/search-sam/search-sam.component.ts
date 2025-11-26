@@ -29,6 +29,9 @@ interface LeadResponseDto {
   standalone: false,
 })
 export class SearchSamComponent {
+  debugInfo = '';
+
+  private http = inject(HttpClient);
   get filteredLeads(): LeadResponseDto[] {
     if (this.showSampleData) {
       // Show all leads including sample data
@@ -54,8 +57,8 @@ export class SearchSamComponent {
   mathCeil(value: number): number {
     return Math.ceil(value);
   }
-  private http = inject(HttpClient);
   term = '';
+  naicsCode = '';
   leads: LeadResponseDto[] = [];
   searchTotal = 0;
   loading = false;
@@ -66,6 +69,16 @@ export class SearchSamComponent {
   disableNaics = false; // Toggle for NAICS filter
   limit = 100;
   offset = 0;
+
+  // Common NAICS codes for quick selection
+  commonNaicsCodes = [
+    { code: '541512', description: 'Computer Systems Design Services' },
+    { code: '541511', description: 'Custom Computer Programming Services' },
+    { code: '541513', description: 'Computer Facilities Management Services' },
+    { code: '541519', description: 'Other Computer Related Services' },
+    { code: '541690', description: 'Other Scientific and Technical Consulting' },
+    { code: '541611', description: 'Administrative Management and General Management' }
+  ];
 
 
   get sampleCount(): number {
@@ -89,6 +102,53 @@ export class SearchSamComponent {
     ).length;
   }
 
+  get selectedNaicsCodes(): string[] {
+    return this.naicsCode.split(',').map(c => c.trim()).filter(c => c);
+  }
+
+  addNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    if (currentCodes.includes(code)) {
+      // Remove if already selected
+      this.removeNaicsCode(code);
+    } else {
+      // Add if not selected
+      currentCodes.push(code);
+      this.naicsCode = currentCodes.join(', ');
+    }
+  }
+
+  removeNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    const index = currentCodes.indexOf(code);
+    if (index > -1) {
+      currentCodes.splice(index, 1);
+      this.naicsCode = currentCodes.join(', ');
+    }
+  }
+
+  toggleNaicsCode(code: string): void {
+    const currentCodes = this.selectedNaicsCodes;
+    const index = currentCodes.indexOf(code);
+    if (index > -1) {
+      // Remove the code
+      currentCodes.splice(index, 1);
+    } else {
+      // Add the code
+      currentCodes.push(code);
+    }
+    this.naicsCode = currentCodes.join(', ');
+  }
+
+  isNaicsCodeSelected(code: string): boolean {
+    return this.selectedNaicsCodes.includes(code);
+  }
+
+  getNaicsName(code: string): string {
+    const naics = this.commonNaicsCodes.find(n => n.code === code);
+    return naics ? naics.description : code;
+  }
+
   hasSampleContracts(lead: LeadResponseDto): boolean {
     return lead.contracts?.some((c) => c.isSample) || false;
   }
@@ -101,25 +161,16 @@ export class SearchSamComponent {
     return value.toLocaleString();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  calculateTotalValue(contracts: any[]): string {
-    const total = contracts.reduce((sum, contract) => sum + contract.value, 0);
+  calculateTotalValue(contracts: LeadResponseDto['contracts']): string {
+    const total = contracts?.reduce((sum, contract) => sum + (contract?.value || 0), 0) || 0;
     return total.toLocaleString();
   }
 
   toggleExpand(leadId: string): void {
-    console.log('Toggle expand called for:', leadId);
     if (this.expandedLeads.has(leadId)) {
       this.expandedLeads.delete(leadId);
-      console.log('Collapsed:', leadId);
     } else {
       this.expandedLeads.add(leadId);
-      console.log(
-        'Expanded:',
-        leadId,
-        'Total expanded:',
-        this.expandedLeads.size
-      );
     }
   }
 
@@ -137,6 +188,7 @@ export class SearchSamComponent {
         '/api/search',
         {
           term: this.term,
+          naicsCode: this.naicsCode,
           disableNaics: this.disableNaics,
           limit: this.limit,
           offset: this.offset
@@ -147,10 +199,52 @@ export class SearchSamComponent {
           this.leads = data.leads || [];
           this.searchTotal = data.total || 0;
           this.loading = false;
-          console.log('Search results from MongoDB:', data);
         },
         error: (err) => {
           console.error('Error searching SAM:', err);
+          this.loading = false;
+        },
+      });
+  }
+
+  searchSamGov() {
+    this.loading = true;
+    console.log('🔍 Searching SAM.gov live with parameters:', {
+      naicsCode: this.naicsCode || 'ALL',
+      maxValue: 250000,
+      limit: 10
+    });
+
+    this.http
+      .post<{
+        success: boolean;
+        message: string;
+        contractsFound: number;
+        contracts: Record<string, unknown>[];
+        timestamp: Date;
+      }>(
+        '/api/search-sam-gov',
+        {
+          naicsCode: this.naicsCode || undefined,
+          maxValue: 250000,
+          limit: 10
+        }
+      )
+      .subscribe({
+        next: (data) => {
+          this.loading = false;
+          if (data.success) {
+            console.log(`✅ ${data.message}`);
+            if (data.contractsFound === 0) {
+              console.log('❌ No contracts found matching the search criteria');
+            }
+            // The detailed logging is done in the backend
+          } else {
+            console.error('❌ SAM.gov search failed:', data.message);
+          }
+        },
+        error: (err) => {
+          console.error('❌ Error searching SAM.gov:', err);
           this.loading = false;
         },
       });

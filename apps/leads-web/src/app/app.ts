@@ -1,11 +1,12 @@
 import { Component, OnInit, inject, OnDestroy } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
 import { Subject, takeUntil } from 'rxjs';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,8 @@ import { Subject, takeUntil } from 'rxjs';
   standalone: true,
   imports: [
     RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
     CommonModule,
     MatToolbarModule,
     MatIconModule,
@@ -22,6 +25,7 @@ import { Subject, takeUntil } from 'rxjs';
 })
 export class App implements OnInit, OnDestroy {
   private statusService = inject(StatusService);
+  private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   protected title = 'SAM Leads Manager';
@@ -35,6 +39,11 @@ export class App implements OnInit, OnDestroy {
     samApiLatency = 0;
 
   ngOnInit() {
+    // Subscribe to router events (no debug logging)
+    this.router.events.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      // Router event handling without debug logs
+    });
+
     // Subscribe to status updates from the observable stream
     this.statusService.status$
       .pipe(takeUntil(this.destroy$))
