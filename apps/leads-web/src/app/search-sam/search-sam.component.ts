@@ -17,6 +17,7 @@ interface LeadResponseDto {
     value: number;
     awardDate: Date;
     status: string;
+    sampleData?: boolean;
     isSample?: boolean;
     isTest?: boolean;
   }[];
@@ -84,7 +85,7 @@ export class SearchSamComponent {
   get sampleCount(): number {
     // Count total number of sample contracts across all leads
     return this.leads.reduce((count, lead) => {
-      const sampleContracts = lead.contracts?.filter((c) => c.isSample) || [];
+      const sampleContracts = lead.contracts?.filter((c) => c.isSample || c.sampleData) || [];
       return count + sampleContracts.length;
     }, 0);
   }
@@ -92,7 +93,7 @@ export class SearchSamComponent {
   get realCount(): number {
     return this.leads.filter(
       (lead) =>
-        lead.contracts && lead.contracts.some((c) => !c.isSample && !c.isTest)
+        lead.contracts && lead.contracts.some((c) => !c.isSample && !c.sampleData && !c.isTest)
     ).length;
   }
 
@@ -150,11 +151,11 @@ export class SearchSamComponent {
   }
 
   hasSampleContracts(lead: LeadResponseDto): boolean {
-    return lead.contracts?.some((c) => c.isSample) || false;
+    return lead.contracts?.some((c) => c.isSample || c.sampleData) || false;
   }
 
   hasRealContracts(lead: LeadResponseDto): boolean {
-    return lead.contracts?.some((c) => !c.isSample) || false;
+    return lead.contracts?.some((c) => !c.isSample && !c.sampleData && !c.isTest) || false;
   }
 
   formatValue(value: number): string {

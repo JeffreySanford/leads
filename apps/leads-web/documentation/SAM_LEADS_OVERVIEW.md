@@ -50,6 +50,7 @@ The Angular application provides a Material Design 3 interface for interacting w
    - Shows all NAICS codes searched and criteria used
 
 **Notable UI Features:**
+
 - Zero-results messaging explains why searches return empty
 - Displays all 5 NAICS codes searched with descriptions
 - Shows complete search criteria (value, set-aside, date range)
@@ -80,11 +81,13 @@ Searches SAM.gov database for leads based on search terms.
 ### 3. `sam_probe.sh` (Removed)
 
 Basic probe of SAM.gov for specific lead information.
+
 - **Status:** Removed as redundant with Pack Leads functionality
 
 ### 4. `sam_probe_verbose.sh` (Removed)
 
 Detailed/verbose probe of SAM.gov.
+
 - **Status:** Removed as redundant with Pack Leads functionality
 
 ## Data Structure
@@ -190,6 +193,7 @@ Store and monitor leads through sales pipeline:
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -204,8 +208,8 @@ npm run serve:all
 
 Access the application:
 
-- Frontend: http://localhost:4200
-- Backend API: http://localhost:3000/api
+- Frontend: <http://localhost:4200>
+- Backend API: <http://localhost:3000/api>
 
 ## Current Implementation Status
 
@@ -241,7 +245,7 @@ Access the application:
 ### Current Search Filters (ND-IT-Tight)
 
 **Why Zero Results Are Normal:**
-The current filter combination is extremely restrictive and often yields zero results, especially during government slowdowns:
+As of January 2026, the federal government is in a shutdown and has paused new contract postings. This means that even with correct filters, you may see zero results until the government resumes normal operations. In normal times, the current filter combination is also extremely restrictive and often yields zero results:
 
 - **Geography:** North Dakota only
 - **Contract Value:** ≤ $250K
@@ -249,13 +253,14 @@ The current filter combination is extremely restrictive and often yields zero re
 - **Date Range:** Last 30 days
 - **NAICS:** Only 5 IT codes (541511, 541512, 541513, 541519, 541690)
 
-**Issue:** SAM.gov is active and posting opportunities (e.g., DISA telecom RFQs), but tight filters exclude most relevant contracts.
+**Issue:** During shutdowns, SAM.gov will not post new opportunities. When the government reopens, new contracts will typically begin appearing within a few days to weeks as agencies resume procurement.
 
 ### Graduated Filter Relaxation Strategy
 
 Apply these progressively until results appear:
 
 #### Level 1: Medium Relaxation (ND-IT-Medium)
+
 ```json
 {
   "dateRange": "90 days",
@@ -268,12 +273,14 @@ Apply these progressively until results appear:
 ```
 
 **Rationale:**
+
 - Extends date window to 90 days (catches more opportunities)
 - Includes adjacent states (Minot/Cavalier AFB work often crosses borders)
 - Adds extended IT NAICS codes
 - Includes pre-solicitation notices (RFI, Sources Sought) to shape opportunities early
 
 #### Level 2: Wide Relaxation (ND-IT-Wide)
+
 ```json
 {
   "dateRange": "90 days",
@@ -287,11 +294,13 @@ Apply these progressively until results appear:
 ```
 
 **Changes:**
+
 - Raises ceiling to $1M (many IT contracts sit between $250K–$750K)
 - Removes SB set-aside filter (includes all opportunities)
 - Adds PSC D3** (IT/Telecom services) as alternative to NAICS
 
 #### Level 3: Sanity Probe (IT-Wide-Probe)
+
 ```json
 {
   "dateRange": "90 days",
@@ -305,6 +314,7 @@ Apply these progressively until results appear:
 ```
 
 **Purpose:**
+
 - Proves SAM.gov API is working
 - Should always return some results
 - No geographic restrictions
@@ -395,13 +405,13 @@ return [];
 
 1. **Register for API Key**
 
-   - Visit https://open.gsa.gov/api/sam-entity-management-api/
+   - Visit <https://open.gsa.gov/api/sam-entity-management-api/>
    - Create account and request API access
    - Obtain API key
 
 2. **Configure Environment Variables**
 
-   ```
+   ```yaml
    SAM_API_KEY=your_api_key_here
    SAM_API_BASE_URL=https://api.sam.gov
    ```
@@ -470,7 +480,7 @@ return [];
 
 ## Project Structure
 
-```
+```DOS
 leads/
 ├── apps/
 │   ├── leads-web/                # Angular UI (formerly review/)

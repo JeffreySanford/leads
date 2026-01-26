@@ -248,6 +248,10 @@ export class AppService {
     );
 
     return forkJoin(searchTasks).pipe(
+      tap(() => {
+        this.samApiStatus = 'connected';
+        this.lastSamApiCheck = new Date();
+      }),
       switchMap((resultsArray) => {
         const allContracts = resultsArray.flat();
         
@@ -297,6 +301,11 @@ export class AppService {
             timestamp: new Date(),
           }))
         );
+      }),
+      catchError((error) => {
+        this.samApiStatus = 'error';
+        this.lastSamApiCheck = new Date();
+        return throwError(() => error);
       })
     );
   }

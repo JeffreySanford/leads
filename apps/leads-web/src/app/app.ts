@@ -70,6 +70,25 @@ export class App implements OnInit, OnDestroy {
     this.statusService.setMode(mode);
   }
 
+  showStatusDetails(kind: 'frontend' | 'backend' | 'database' | 'samApi') {
+    const parts: Record<string, string> = {
+      frontend: `Frontend — status: ${this.frontendStatus}`,
+      backend: `Backend API — status: ${this.backendStatus}; latency: ${Math.round(this.backendLatency)} ms`,
+      database: `Database — status: ${this.databaseStatus}; latency: ${Math.round(this.databaseLatency)} ms`,
+      samApi: `SAM.gov API — status: ${this.samApiStatus}; latency: ${Math.round(this.samApiLatency)} ms`,
+    };
+    const msg = parts[kind] ?? `Status: ${kind}`;
+    const nav = navigator as unknown as { clipboard?: { writeText: (text: string) => Promise<void> } };
+    if (nav.clipboard?.writeText) {
+      nav.clipboard.writeText(msg).then(() => {
+        console.log('Status details copied to clipboard:', msg);
+        alert(msg);
+      }).catch(() => alert(msg));
+    } else {
+      alert(msg);
+    }
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();

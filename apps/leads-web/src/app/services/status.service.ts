@@ -95,7 +95,7 @@ export class StatusService {
           frontend: 'online',
           backend: response.status === 'ok' ? 'online' : 'error',
           database: response.database.connected ? 'online' : 'offline',
-          samApi: response.samApi.connected ? 'online' : 'offline',
+          samApi: response.samApi.status as ConnectionStatus,
           lastChecked: new Date(response.timestamp),
           backendLatency,
           databaseLatency,

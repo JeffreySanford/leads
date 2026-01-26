@@ -112,11 +112,12 @@ Description: 24/7 help desk support for VA medical center...
 
 ### Why Results May Be Zero
 
-1. **DEMO_KEY Rate Limits**: May be throttled or blocked
-2. **No Matching Contracts**: Federal agencies may not have posted IT contracts in the last 30 days that match our criteria
-3. **All Contracts > $250K**: Recent IT contracts may all exceed our value threshold
-4. **Different Set-Aside Types**: Contracts may be 8(a), SDVOSB, or HUBZone instead of general SBA
-5. **API Response Issues**: SAM.gov API may be down or slow
+1. **Federal Contracting Pause**: As of January 2026, federal contract postings have been paused due to a government shutdown. No new opportunities are being posted until the government resumes normal operations. This is the primary reason for zero results at this time.
+2. **DEMO_KEY Rate Limits**: May be throttled or blocked
+3. **No Matching Contracts**: Federal agencies may not have posted IT contracts in the last 30 days that match our criteria
+4. **All Contracts > $250K**: Recent IT contracts may all exceed our value threshold
+5. **Different Set-Aside Types**: Contracts may be 8(a), SDVOSB, or HUBZone instead of general SBA
+6. **API Response Issues**: SAM.gov API may be down or slow
 
 ### Current Behavior
 
@@ -154,7 +155,7 @@ When discussing this system, here's what we're doing:
 
 **Current Challenge**:
 
-Real API may return 0 results due to rate limits, no matching contracts, or API issues. The system is configured correctly but needs either:
+Real API may return 0 results due to rate limits, no matching contracts, or API issues. **Currently, the most likely cause is the federal government shutdown, which has paused new contract postings.** The system is configured correctly but needs either:
 
 1. A registered SAM.gov API key for better access
 2. Broader search criteria (more NAICS, longer date range, higher value)
@@ -189,4 +190,5 @@ If you see `⚠️ Falling back to MOCK data`, the API call failed.
 
 ## Next Steps for Improvement
 
-1. **Get Real API Key**: Register at [https://open.gsa.gov/api/get-opportunities-public-api/](https://open.gsa.gov/api/get-opportunities-public-api/)
+1. **Monitor Government Status**: Check [SAM.gov](https://sam.gov) and [GSA News](https://gsa.gov) for updates on when federal contracting will resume. New contracts will begin appearing again once the government reopens and agencies resume procurement operations. This typically occurs within days to weeks after a shutdown ends.
+2. **Get Real API Key**: Register at [https://open.gsa.gov/api/get-opportunities-public-api/](https://open.gsa.gov/api/get-opportunities-public-api/)

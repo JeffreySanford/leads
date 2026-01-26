@@ -288,7 +288,7 @@ export class PackLeadsComponent implements OnInit, OnDestroy {
   get realCount(): number {
     return this.leads.filter(
       (lead) =>
-  lead.contracts && lead.contracts.some((c) => !c.sampleData && !c.isTest)
+        lead.contracts && lead.contracts.some((c) => !c.sampleData && !c.isSample && !c.isTest)
     ).length;
   }
 
@@ -299,11 +299,11 @@ export class PackLeadsComponent implements OnInit, OnDestroy {
   }
 
   hasSampleContracts(lead: LeadResponseDto): boolean {
-  return lead.contracts?.some((c) => c.sampleData || c.isSample) || false;
+    return lead.contracts?.some((c) => c.sampleData || c.isSample) || false;
   }
 
   hasRealContracts(lead: LeadResponseDto): boolean {
-  return lead.contracts?.some((c) => !c.sampleData) || false;
+    return lead.contracts?.some((c) => !c.sampleData && !c.isSample && !c.isTest) || false;
   }
 
   formatValue(value: number): string {
@@ -421,6 +421,13 @@ export class PackLeadsComponent implements OnInit, OnDestroy {
         (data) => {
           console.log('🔵 North Dakota IT Contracts Response:', data);
 
+          if (!data.success) {
+            this.lastApiError = data.message;
+            alert(`❌ Search Failed - API Error: ${data.message}`);
+            this.loading = false;
+            return;
+          }
+
           const naicsDetails = `
 📊 NAICS Codes Searched:
 - 541512: Computer Systems Design Services
@@ -450,7 +457,8 @@ export class PackLeadsComponent implements OnInit, OnDestroy {
         },
         (err) => {
           console.error('Error searching ND IT contracts:', err);
-          alert('❌ ND IT contract search failed. Check console for details.');
+          this.lastApiError = 'ND IT contract search failed. SAM.gov API may be rate limited.';
+          alert('❌ ND IT contract search failed. SAM.gov API may be rate limited. Check console for details.');
           this.loading = false;
         }
       );
