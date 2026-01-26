@@ -52,3 +52,25 @@ jobs:
             } else {
               console.log('No results — nothing to report.');
             }
+
+      - name: Send email report (SendGrid)
+        if: steps.probe.outputs['result-file'] != '' && env.SENDGRID_API_KEY
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_TO: ${{ secrets.PROBE_EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.PROBE_EMAIL_FROM }}
+        run: |
+          set -euo pipefail
+          if [ ! -f probe-output.json ]; then echo "no probe output"; exit 0; fi
+          count=$(jq -r .count probe-output.json)
+          samples=$(jq -c '.samples' probe-output.json)
+          subject="[SAM Leads] Weekly SANITY Probe — ${count} ND-IT results"
+          # build a short, sanitized body
+          body_summary=$(jq -r '[.samples[] | {id: (.noticeId // .solicitationNumber // "n/a"), title: (.title // .noticeTitle // "n/a")}] | .[] | "- \(.id) — \(.title)"' probe-output.json | sed ':a;N;$!ba;s/\n/\n/g')
+          payload=$(jq -n --arg sub "$subject" --arg body "$body_summary" '{personalizations:[{to:[{email:env.EMAIL_TO}], subject:$sub}], from:{email:env.EMAIL_FROM}, content:[{type:"text/plain", value: ("Weekly SANITY Probe results:\n\n" + $body + "\n\nCount: " + (input_filename? // "") )}] }' --argfile input probe-output.json)
+          # send via SendGrid API (no secrets printed)
+          curl -sS -X POST "https://api.sendgrid.com/v3/mail/send" \
+            -H "Authorization: Bearer $SENDGRID_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$payload"
+          echo "Email sent (sanitized) to $EMAIL_TO"

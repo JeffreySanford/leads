@@ -200,9 +200,10 @@ export class AppService {
 A lightweight scheduled probe runs a wide-relaxation search weekly and will open a GitHub issue when ND-IT opportunities are detected. To enable:
 
 - Add the repo secret `SAM_API_KEY` (do not commit keys to the repo).
+- Add an email delivery secret: `SENDGRID_API_KEY` and the destination `PROBE_EMAIL_TO` and `PROBE_EMAIL_FROM` (or configure SMTP secrets if you prefer SMTP).
 - The workflow file is `.github/workflows/weekly-sanity-probe.yml` and uses the `ND-IT-Wide` search parameters (90d, ND+adjacent, $1M ceiling).
 
-This action is intended as a low-cost early-warning system and **does not** commit secrets or live data to the repository.
+This action is intended as a low-cost early-warning system and **does not** commit secrets or live data to the repository. The frontend footer will surface the _latest probe_ information (if any) by linking to the probe issue created in the repository; clicking the SAM.gov status in the footer shows the last probe issue details or falls back to local backend health.
 
 #### Step 1: Install HTTP Client
 
@@ -215,7 +216,6 @@ npm install axios
 ```typescript
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-
 
 @Injectable()
 export class SamGovService {
