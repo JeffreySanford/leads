@@ -1,4 +1,4 @@
-import { Module, OnModuleDestroy } from '@nestjs/common';
+import { Module, OnModuleDestroy, Logger } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
@@ -10,7 +10,7 @@ let mongod: MongoMemoryServer;
       useFactory: async () => {
         mongod = await MongoMemoryServer.create();
         const uri = mongod.getUri();
-        console.log('📦 In-Memory MongoDB started at:', uri);
+        Logger.log(`📦 In-Memory MongoDB started at: ${uri}`, 'Database');
         return { uri };
       },
     }),

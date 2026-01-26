@@ -1,5 +1,7 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { StatusService } from '../services/status.service';
+import { Subject, takeUntil } from 'rxjs';
 
 interface LeadResponseDto {
   leadId: string;
@@ -31,7 +33,7 @@ interface LeadResponseDto {
   styleUrls: ['./pack-leads.component.scss'],
   standalone: false,
 })
-export class PackLeadsComponent implements OnInit {
+export class PackLeadsComponent implements OnInit, OnDestroy {
   // NAICS code search state
   selectedNaicsCodes: string[] = ['541512', '541519', '541511', '541513', '541690']; // Example default codes
   naicsSearchMode: 'any' | 'all' = 'any';
@@ -204,8 +206,8 @@ export class PackLeadsComponent implements OnInit {
   }
   lastApiError: string | null = null;
   lastLatency: number | null = null;
-  lastSource: 'sample' | 'live' = 'sample';
-  showSampleData = true; // Live data OFF by default
+  lastSource: 'sample' | 'live' = 'live';
+  showSampleData = false; // Default to LIVE data
   // ...existing code...
   showLabOverlay = false;
   showSampleContracts = true;
@@ -220,17 +222,12 @@ export class PackLeadsComponent implements OnInit {
 
   toggleSampleData() {
     if (this.isSwitching) return;
-    if (!this.showSampleData) {
-      // Switch back to sample data
-      this.showSampleData = true;
-      this.packLeads();
-      this.lastSource = 'sample';
-    } else {
-      // Switch to live data from SAM.gov
-      this.testLiveSam();
-    }
+    const newMode = this.showSampleData ? 'live' : 'test';
+    this.statusService.setMode(newMode);
   }
   private http = inject(HttpClient);
+  private statusService = inject(StatusService);
+  private destroy$ = new Subject<void>();
   leads: LeadResponseDto[] = [];
   scriptOutput = '';
   loading = true; // Start with loading true
@@ -241,10 +238,28 @@ export class PackLeadsComponent implements OnInit {
   // Removed duplicate declaration
 
   ngOnInit() {
-  // Auto-load leads on component initialization
-  this.showSampleData = true;
-  this.packLeads();
-  this.updateDisplayedContracts();
+    // Sync with global mode
+    this.statusService.mode$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(mode => {
+        const isNowLive = mode === 'live';
+        const changedToLive = this.showSampleData && isNowLive;
+        
+        this.showSampleData = !isNowLive;
+
+        if (changedToLive) {
+          this.testLiveSam();
+        } else {
+          this.packLeads();
+        }
+      });
+    
+    this.updateDisplayedContracts();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get filteredLeads(): LeadResponseDto[] {

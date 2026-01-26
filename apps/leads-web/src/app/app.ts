@@ -4,7 +4,8 @@ import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { AppMode, StatusService, ConnectionStatus, SystemStatus } from './services/status.service';
 import { Subject, takeUntil } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -21,6 +22,7 @@ import { Router } from '@angular/router';
     MatToolbarModule,
     MatIconModule,
     MatTooltipModule,
+    MatButtonToggleModule,
   ],
 })
 export class App implements OnInit, OnDestroy {
@@ -29,6 +31,7 @@ export class App implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   protected title = 'SAM Leads Manager';
+  appMode: AppMode = 'live';
 
   frontendStatus: ConnectionStatus = 'checking';
   backendStatus: ConnectionStatus = 'checking';
@@ -39,6 +42,11 @@ export class App implements OnInit, OnDestroy {
     samApiLatency = 0;
 
   ngOnInit() {
+    // Subscribe to mode changes
+    this.statusService.mode$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(mode => this.appMode = mode);
+
     // Subscribe to router events (no debug logging)
     this.router.events.pipe(takeUntil(this.destroy$)).subscribe(() => {
       // Router event handling without debug logs
@@ -56,6 +64,10 @@ export class App implements OnInit, OnDestroy {
         this.samApiStatus = status.samApi;
         this.samApiLatency = status.samApiLatency ?? 0;
       });
+  }
+
+  onModeChange(mode: AppMode) {
+    this.statusService.setMode(mode);
   }
 
   ngOnDestroy() {

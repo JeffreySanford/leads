@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "start:all": "nx run-many --target=serve --projects=leads-api,leads-web --parallel",
     "serve:all": "nx run-many --target=serve --projects=leads-api,leads-web --parallel",
     "serve:api": "nx serve leads-api",
     "serve:web": "nx serve leads-web",
@@ -90,6 +91,7 @@
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.0",
     "axios": "^1.6.0",
+    "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "mongodb-memory-server": "^10.3.0",
     "mongoose": "^8.19.3",

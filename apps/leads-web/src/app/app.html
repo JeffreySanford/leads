@@ -1,6 +1,12 @@
 <mat-toolbar color="primary">
   <span>{{title}}</span>
   <span class="spacer"></span>
+  
+  <mat-button-toggle-group [value]="appMode" (change)="onModeChange($event.value)" aria-label="App Mode" class="mode-toggle">
+    <mat-button-toggle value="test">Test</mat-button-toggle>
+    <mat-button-toggle value="live">Live</mat-button-toggle>
+  </mat-button-toggle-group>
+
   <a mat-button routerLink="/pack" routerLinkActive="active">
     <mat-icon>folder</mat-icon> Leads
   </a>

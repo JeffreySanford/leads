@@ -38,9 +38,9 @@ Documentation for the original shell scripts:
 
 ## Quick Links
 
-- **Frontend Application:** http://localhost:4200
-- **Backend API:** http://localhost:3000/api
-- **SAM.gov API Documentation:** https://open.gsa.gov/api/sam-entity-management-api/
+- **Frontend Application:** <http://localhost:4200>
+- **Backend API:** <http://localhost:3000/api>
+- **SAM.gov API Documentation:** <https://open.gsa.gov/api/sam-entity-management-api/>
 
 ## Getting Started
 

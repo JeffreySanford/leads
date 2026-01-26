@@ -55,9 +55,12 @@ test-output
 **/_npx/
 **/nx-console-tmp*/
 
-# Environment variables
+# Environment variables (DO NOT COMMIT .env)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Allowed environment samples
+!.env.sample

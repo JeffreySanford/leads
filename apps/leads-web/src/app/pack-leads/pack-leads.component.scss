@@ -84,6 +84,17 @@
 .main-spinner {
   margin: 20px auto;
 }
+
+.badge-v2 {
+  background: white;
+  color: #333;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

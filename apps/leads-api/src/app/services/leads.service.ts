@@ -6,9 +6,7 @@ import { Model } from 'mongoose';
 import { Lead } from '../schemas/lead.schema';
 import { LeadResponseDto, ProbeResultDto, SearchResultDto } from '../dto/lead.dto';
 import { Observable, from, of } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
-
-// ...existing code...
+import { switchMap, map, mergeMap, toArray } from 'rxjs/operators';
 
 @Injectable()
 export class LeadsService implements OnModuleInit {
@@ -32,18 +30,22 @@ export class LeadsService implements OnModuleInit {
 
   importLiveSeedLeads(): Observable<number> {
     if (!liveSeedLeads || liveSeedLeads.length === 0) return of(0);
-    let imported = 0;
-    return from(Promise.all(
-      (liveSeedLeads as LeadResponseDto[]).map(async (lead: LeadResponseDto) => {
-        if (!('leadId' in lead)) return;
-        const exists = await this.leadModel.exists({ leadId: lead.leadId });
-        if (!exists) {
-          await this.leadModel.create(lead);
-          imported++;
-        }
-      })
-    )).pipe(
-      map(() => {
+    
+    return from(liveSeedLeads as LeadResponseDto[]).pipe(
+      mergeMap((lead: LeadResponseDto) => {
+        if (!('leadId' in lead)) return of(null);
+        return from(this.leadModel.exists({ leadId: lead.leadId })).pipe(
+          switchMap((exists) => {
+            if (!exists) {
+              return from(this.leadModel.create(lead)).pipe(map(() => 1));
+            }
+            return of(0);
+          })
+        );
+      }),
+      toArray(),
+      map((results) => {
+        const imported = results.reduce((acc, val) => acc + (val || 0), 0);
         console.log(`✅ Imported ${imported} live leads from live-seed.ts`);
         return imported;
       })
@@ -58,7 +60,7 @@ export class LeadsService implements OnModuleInit {
           'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
         )
         .lean()
-  ).pipe(map((leads) => (leads as Lead[]).map((lead) => this.toResponseDto(lead))));
+  ).pipe(map((leads) => (leads as any[]).map((lead) => this.toResponseDto(lead))));
   }
 
   probeSam(leadId: string): Observable<ProbeResultDto> {
@@ -165,7 +167,7 @@ Probe Status: ${lead.probeStatus}
     const termRegex = term ? new RegExp(term, 'i') : null;
     const naicsRegex = naicsCode ? new RegExp(naicsCode.replace(/\s*,\s*/g, '|'), 'i') : null;
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, any> = {};
 
     // Build query conditions
     const orConditions = [];
@@ -199,20 +201,24 @@ Probe Status: ${lead.probeStatus}
         .lean()
     ).pipe(
       map((leads) => ({
-        total: (leads as Lead[]).length,
-        leads: (leads as Lead[]).map((lead) => this.toResponseDto(lead)),
+        total: (leads as any[]).length,
+        leads: (leads as any[]).map((lead) => this.toResponseDto(lead)),
       }))
     );
   }
 
-  async saveLeadIfNotExists(leadDto: LeadResponseDto): Promise<void> {
-    const exists = await this.leadModel.exists({ leadId: leadDto.leadId });
-    if (!exists) {
-      await this.leadModel.create(leadDto);
-    }
+  saveLeadIfNotExists(leadDto: LeadResponseDto): Observable<void> {
+    return from(this.leadModel.exists({ leadId: leadDto.leadId })).pipe(
+      switchMap((exists) => {
+        if (!exists) {
+          return from(this.leadModel.create(leadDto)).pipe(map(() => undefined));
+        }
+        return of(undefined);
+      })
+    );
   }
 
-  private toResponseDto(lead: Lead): LeadResponseDto {
+  private toResponseDto(lead: any): LeadResponseDto {
     return {
       leadId: lead.leadId,
       companyName: lead.companyName,

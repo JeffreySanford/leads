@@ -28,8 +28,8 @@ npm run serve:all
 
 ### Access the Application
 
-- **Frontend:** http://localhost:4200
-- **Backend API:** http://localhost:3000/api
+- **Frontend:** <http://localhost:4200>
+- **Backend API:** <http://localhost:3000/api>
 
 ## Component Details
 
@@ -195,13 +195,13 @@ export class AppService {
 
 ### Future SAM.gov Integration
 
-**Step 1: Install HTTP Client**
+#### Step 1: Install HTTP Client
 
 ```bash
 npm install axios
 ```
 
-**Step 2: Create SAM.gov Service**
+#### Step 2: Create SAM.gov Service
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -238,7 +238,7 @@ export class SamGovService {
 }
 ```
 
-**Step 3: Update AppService to Use SAM.gov Service**
+#### Step 3: Update AppService to Use SAM.gov Service
 
 ```typescript
 @Injectable()
@@ -489,7 +489,12 @@ npm run build:ui
 
 ### Environment Configuration
 
-**Create `.env` file:**
+**Setup Environment Variables:**
+
+1. Copy the sample file: `cp .env.sample .env`
+2. Update `.env` with your specific configuration.
+
+**Default `.env` structure:**
 
 ```env
 # API Configuration
@@ -497,11 +502,9 @@ PORT=3000
 NODE_ENV=production
 
 # SAM.gov API
+# NOTE: This key is kept secret on the server and never exposed to the client API
 SAM_API_KEY=your_api_key_here
 SAM_API_BASE_URL=https://api.sam.gov
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/leads
 ```
 
 ### Docker Deployment (Future)

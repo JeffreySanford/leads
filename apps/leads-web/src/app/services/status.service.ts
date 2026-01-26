@@ -1,4 +1,5 @@
 export type ConnectionStatus = 'online' | 'offline' | 'checking' | 'error';
+export type AppMode = 'test' | 'live';
 
 export interface SystemStatus {
   frontend: ConnectionStatus;
@@ -6,6 +7,7 @@ export interface SystemStatus {
   database: ConnectionStatus;
   samApi: ConnectionStatus;
   lastChecked: Date;
+  mode: AppMode;
   backendLatency?: number;
   databaseLatency?: number;
   samApiLatency?: number;
@@ -45,15 +47,19 @@ export class StatusService {
     database: 'checking',
     samApi: 'checking',
     lastChecked: new Date(),
+    mode: 'live', // Default to live
     backendLatency: 0,
     databaseLatency: 0,
     samApiLatency: 0
   });
 
   public status$: Observable<SystemStatus> = this.statusSubject.asObservable();
-  public backendStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.backend, latency: s.backendLatency ?? 0})));
-  public databaseStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.database, latency: s.databaseLatency ?? 0})));
-  public samApiStatus$: Observable<{status: ConnectionStatus, latency: number}> = this.status$.pipe(map(s => ({status: s.samApi, latency: s.samApiLatency ?? 0})));
+  public mode$: Observable<AppMode> = this.status$.pipe(map(s => s.mode));
+
+  setMode(mode: AppMode) {
+    const current = this.statusSubject.value;
+    this.statusSubject.next({ ...current, mode });
+  }
 
   constructor() {
     this.startPolling();
@@ -116,8 +122,9 @@ export class StatusService {
   /**
    * Update the status subject
    */
-  private updateStatus(status: SystemStatus): void {
-    this.statusSubject.next(status);
+  private updateStatus(status: Partial<SystemStatus>): void {
+    const current = this.statusSubject.value;
+    this.statusSubject.next({ ...current, ...status });
   }
 
   /**

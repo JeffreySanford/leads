@@ -1,10 +1,8 @@
 <mat-card>
   <mat-card-header>
     <mat-icon mat-card-avatar>folder</mat-icon>
-    <mat-card-title>North Dakota NAICS Leads</mat-card-title>
-    <mat-card-subtitle
-      >Manage and analyze lead data from MongoDB</mat-card-subtitle
-    >
+    <mat-card-title>{{ showSampleData ? 'North Dakota NAICS Leads (Test)' : 'SAM.gov Live Leads' }}</mat-card-title>
+    <mat-card-subtitle>{{ showSampleData ? 'Reviewing sample data and testing system behavior' : 'Real-time contract opportunities from SAM.gov' }}</mat-card-subtitle>
   </mat-card-header>
   <mat-card-content>
     <!-- NAICS Code Search Bar -->
@@ -40,16 +38,13 @@
       </button>
 
       <button
-        mat-stroked-button
-        (click)="toggleSampleData()"
-        [matBadge]="getCurrentModeContractCount().toString()"
-        [matBadgeColor]="showSampleData ? 'primary' : 'warn'"
-        [matBadgeSize]="'small'"
+        mat-raised-button
         [color]="showSampleData ? 'primary' : 'accent'"
         [disabled]="loading || isSwitching"
       >
-        <mat-icon>{{ showSampleData ? 'visibility' : 'visibility_off' }}</mat-icon>
-        {{ showSampleData ? 'Sample' : 'Live' }}
+        <mat-icon>{{ showSampleData ? 'biotech' : 'hub' }}</mat-icon>
+        {{ showSampleData ? 'Test Mode' : 'Live Mode' }}
+        <span *ngIf="leads.length > 0" class="badge-v2">{{ leads.length }}</span>
       </button>
 
 

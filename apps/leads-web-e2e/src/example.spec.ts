@@ -3,6 +3,6 @@ import { test, expect } from '@playwright/test';
 test('has title', async ({ page }) => {
   await page.goto('/');
 
-  // Expect h1 to contain a substring.
-  expect(await page.locator('h1').innerText()).toContain('Welcome');
+  // Expect the toolbar title to contain the app title.
+  expect(await page.locator('mat-toolbar span').first().innerText()).toContain('SAM Leads Manager');
 });
