@@ -7,14 +7,14 @@
     <mat-button-toggle value="live">Live</mat-button-toggle>
   </mat-button-toggle-group>
 
-  <a mat-button class="nav-btn" routerLink="/pack" routerLinkActive="active" aria-label="Leads">
-    <mat-icon>folder</mat-icon>
+  <a mat-button class="nav-btn legacy" routerLink="/pack" routerLinkActive="active" aria-label="Leads" role="button">
+    <mat-icon aria-hidden="true">folder</mat-icon>
     <span class="nav-label">Leads</span>
   </a>
-  <a mat-button class="nav-btn" routerLink="/search-sam" routerLinkActive="active" aria-label="Search SAM">
-    <mat-icon>manage_search</mat-icon>
+  <a mat-button class="nav-btn legacy" routerLink="/search-sam" routerLinkActive="active" aria-label="Search SAM" role="button">
+    <mat-icon aria-hidden="true">manage_search</mat-icon>
     <span class="nav-label">Search SAM</span>
-  </a>
+  </a>"
 </mat-toolbar>
 <main class="content">
   <router-outlet></router-outlet>
