@@ -1,0 +1,54 @@
+name: Weekly SANITY Probe
+
+on:
+  schedule:
+    - cron: '0 12 * * 1' # Every Monday at 12:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      SAM_API_BASE: https://api.sam.gov/opportunities/v2/search
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run weekly sanity probe
+        id: probe
+        # script reads SAM_API_KEY from repo secret; do NOT echo secrets
+        run: |
+          node ./scripts/weekly-sanity-probe.js > probe-output.json
+          echo "::set-output name=result-file::probe-output.json"
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+
+      - name: Create issue when results found
+        if: steps.probe.outputs['result-file'] != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const out = JSON.parse(fs.readFileSync('probe-output.json', 'utf8'));
+            if (out.count && out.count > 0) {
+              const title = `Weekly SANITY Probe: ${out.count} ND-IT results found`;
+              const body = `The weekly SANITY probe found **${out.count}** ND-IT opportunities (wide-relaxation).\n\nSearch parameters: ND-IT-Wide (90d, ND+adjacent, max $1M, broader NAICS).\n\nSample results (sanitized):\n\n${out.samples.map(s => `- ${s.noticeId || s.solicitationNumber || 'n/a'} — ${s.title || s.noticeTitle || 'n/a'}`).join('\n')}\n\nFull probe output is attached to this workflow run.`;
+              await github.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body
+              });
+            } else {
+              console.log('No results — nothing to report.');
+            }

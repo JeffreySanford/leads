@@ -195,6 +195,15 @@ export class AppService {
 
 ### Future SAM.gov Integration
 
+#### Weekly sanity probe (GitHub Action)
+
+A lightweight scheduled probe runs a wide-relaxation search weekly and will open a GitHub issue when ND-IT opportunities are detected. To enable:
+
+- Add the repo secret `SAM_API_KEY` (do not commit keys to the repo).
+- The workflow file is `.github/workflows/weekly-sanity-probe.yml` and uses the `ND-IT-Wide` search parameters (90d, ND+adjacent, $1M ceiling).
+
+This action is intended as a low-cost early-warning system and **does not** commit secrets or live data to the repository.
+
 #### Step 1: Install HTTP Client
 
 ```bash
@@ -206,6 +215,7 @@ npm install axios
 ```typescript
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+
 
 @Injectable()
 export class SamGovService {
