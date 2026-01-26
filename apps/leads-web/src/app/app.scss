@@ -171,6 +171,88 @@ a[mat-button] {
       margin-right: 4px;
     }
 
+    /* Header navigation buttons */
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      color: rgba(255,255,255,0.9);
+      background: transparent;
+      font-weight: 600;
+      text-transform: none;
+      transition: background 180ms ease, transform 120ms ease, box-shadow 180ms ease;
+      box-shadow: none;
+      border: 1px solid transparent;
+    }
+
+    .nav-btn .nav-label { line-height: 1; }
+
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn.active,
+    .nav-btn.mat-button-toggle-checked {
+      background: rgba(255,255,255,0.12);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.24);
+      border-color: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    .nav-btn:focus {
+      outline: 3px solid rgba(66,153,225,0.16);
+      outline-offset: 2px;
+    }
+
+    /* Mode toggle (segmented control look) */
+    .mode-toggle {
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      padding: 4px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .mode-toggle .mat-button-toggle {
+      border-radius: 999px;
+      padding: 6px 10px;
+      min-width: 64px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .mode-toggle .mat-button-toggle.mat-button-toggle-checked {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      box-shadow: 0 6px 18px rgba(2,6,23,0.24) inset;
+      color: #fff;
+    }
+
+    /* Pack leads title badges (LIVE / TEST) */
+    .live-badge, .test-badge {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      vertical-align: middle;
+    }
+
+    .live-badge {
+      background: rgba(76,175,80,0.12);
+      color: #9be6a0;
+      border: 1px solid rgba(76,175,80,0.18);
+      box-shadow: 0 4px 12px rgba(76,175,80,0.06) inset;
+    }
+
+    .test-badge {
+      background: rgba(63,81,181,0.08);
+      color: rgba(187,193,255,1);
+      border: 1px solid rgba(63,81,181,0.12);
+    }
 
     .status-indicator {
       min-width: 10px;

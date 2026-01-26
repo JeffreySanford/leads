@@ -1,8 +1,12 @@
 <mat-card>
   <mat-card-header>
     <mat-icon mat-card-avatar>folder</mat-icon>
-    <mat-card-title>{{ showSampleData ? 'North Dakota NAICS Leads (Test)' : 'SAM.gov Live Leads' }}</mat-card-title>
-    <mat-card-subtitle>{{ showSampleData ? 'Reviewing sample data and testing system behavior' : 'Real-time contract opportunities from SAM.gov' }}</mat-card-subtitle>
+    <mat-card-title>
+      <span class="title-text">{{ showSampleData ? 'North Dakota NAICS Leads (Test)' : 'SAM.gov Live Leads' }}</span>
+      <span *ngIf="!showSampleData" class="live-badge" title="Live SAM.gov data">LIVE</span>
+      <span *ngIf="showSampleData" class="test-badge" title="Sample data">TEST</span>
+    </mat-card-title>
+    <mat-card-subtitle class="title-sub">{{ showSampleData ? 'Reviewing sample data and testing system behavior' : 'Real-time contract opportunities from SAM.gov' }}</mat-card-subtitle>
   </mat-card-header>
   <mat-card-content>
     <!-- NAICS Code Search Bar -->
