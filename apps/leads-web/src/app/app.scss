@@ -108,6 +108,70 @@ a[mat-button] {
   }
 }
 
+/* Top-level header navigation button styles — applies to toolbar buttons and icon-buttons */
+mat-toolbar .nav-btn,
+mat-toolbar button.nav-btn,
+mat-toolbar a.nav-btn,
+mat-toolbar .mat-icon-button.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px;
+  min-width: 140px;
+  height: 40px;
+  border-radius: 12px;
+  color: rgba(255,255,255,0.95);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  font-weight: 600;
+  text-transform: none;
+  transition: background 180ms ease, transform 120ms ease, box-shadow 180ms ease, border-color 150ms ease;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.12);
+  border: 1px solid rgba(13,148,136,0.18);
+  backdrop-filter: blur(2px);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* legacy pill modifier for header */
+mat-toolbar .nav-btn.legacy {
+  border-radius: 999px;
+  padding: 8px 18px;
+  min-width: 150px;
+  height: 44px;
+  box-shadow: 0 8px 26px rgba(2,6,23,0.18), inset 0 -4px 12px rgba(255,255,255,0.03);
+  border: 1px solid rgba(13,148,136,0.28);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+}
+
+mat-toolbar .nav-btn.secondary { border-color: rgba(255,179,0,0.18); color: rgba(255,243,224,0.95); }
+mat-toolbar .nav-btn .nav-label { line-height: 1; display: inline-block; text-align: center; }
+mat-toolbar .nav-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+mat-toolbar .nav-btn:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-1px);
+  border-color: rgba(13,148,136,0.42);
+  box-shadow: 0 14px 40px rgba(2,6,23,0.18);
+}
+
+mat-toolbar .nav-btn.active,
+mat-toolbar .nav-btn.mat-button-toggle-checked {
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 18px 48px rgba(2,6,23,0.28);
+  border-color: rgba(13,148,136,0.7);
+  color: #ffffff;
+  transform: translateY(-1px) scale(1.01);
+}
+
+mat-toolbar .nav-btn:focus {
+  outline: 3px solid rgba(13,148,136,0.18);
+  outline-offset: 4px;
+  box-shadow: 0 12px 36px rgba(13,148,136,0.12);
+}
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -171,71 +235,7 @@ a[mat-button] {
       margin-right: 4px;
     }
 
-    /* Header navigation buttons */
-    .nav-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 6px 16px;
-      min-width: 140px; /* enforce same size */
-      height: 40px;
-      border-radius: 12px;
-      color: rgba(255,255,255,0.95);
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      font-weight: 600;
-      text-transform: none;
-      transition: background 180ms ease, transform 120ms ease, box-shadow 180ms ease, border-color 150ms ease;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.12);
-      border: 1px solid rgba(13,148,136,0.18); /* teal-500 @ 18% */
-      backdrop-filter: blur(2px);
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-
-    /* "Legacy" modifier requested — rounded pill, stronger shadow + clearer outline */
-    .nav-btn.legacy {
-      border-radius: 999px;
-      padding: 8px 18px;
-      min-width: 150px; /* slightly wider for pill look */
-      height: 44px;
-      box-shadow: 0 8px 26px rgba(2,6,23,0.18), inset 0 -4px 12px rgba(255,255,255,0.03);
-      border: 1px solid rgba(13,148,136,0.28);
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-    }
-
-    /* secondary variant (use when a different accent is desired) */
-    .nav-btn.secondary {
-      border-color: rgba(255,179,0,0.18); /* amber-400 @ 18% */
-      color: rgba(255,243,224,0.95);
-    }
-
-    .nav-btn .nav-label { line-height: 1; display: inline-block; text-align: center; }
-
-    .nav-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
-
-    .nav-btn:hover {
-      background: rgba(255,255,255,0.06);
-      transform: translateY(-1px);
-      border-color: rgba(13,148,136,0.42);
-      box-shadow: 0 14px 40px rgba(2,6,23,0.18);
-    }
-
-    .nav-btn.active,
-    .nav-btn.mat-button-toggle-checked {
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      box-shadow: 0 18px 48px rgba(2,6,23,0.28);
-      border-color: rgba(13,148,136,0.7);
-      color: #ffffff;
-      transform: translateY(-1px) scale(1.01);
-    }
-
-    .nav-btn:focus {
-      outline: 3px solid rgba(13,148,136,0.18);
-      outline-offset: 4px;
-      box-shadow: 0 12px 36px rgba(13,148,136,0.12);
-    }
+    /* Header nav rules were moved to top-level `mat-toolbar .nav-btn` so toolbar buttons (search, nav) are styled correctly */
 
     /* Mode toggle (segmented control look) */
     .mode-toggle {
