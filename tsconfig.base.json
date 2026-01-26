@@ -12,10 +12,26 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
     "customConditions": ["@leads/source"]
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictTemplates": true,
+    "typeCheckHostBindings": true,
+    "strictInputTypes": true,
+    "strictInputAccessModifiers": true,
+    "strictOutputEventTypes": true,
+    "strictDomEventTypes": true,
+    "strictAttributeTypes": true,
+    "strictContextGenerators": true,
+    "strictLiteralTypes": true
   }
 }

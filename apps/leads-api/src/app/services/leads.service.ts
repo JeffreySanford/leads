@@ -60,7 +60,7 @@ export class LeadsService implements OnModuleInit {
           'leadId companyName naicsCode naicsDescription city stateCode businessType registrationStatus probeStatus lastProbed contracts'
         )
         .lean()
-  ).pipe(map((leads) => (leads as any[]).map((lead) => this.toResponseDto(lead))));
+  ).pipe(map((leads) => (leads as unknown as Record<string, unknown>[]).map((lead) => this.toResponseDto(lead))));
   }
 
   probeSam(leadId: string): Observable<ProbeResultDto> {
@@ -167,10 +167,10 @@ Probe Status: ${lead.probeStatus}
     const termRegex = term ? new RegExp(term, 'i') : null;
     const naicsRegex = naicsCode ? new RegExp(naicsCode.replace(/\s*,\s*/g, '|'), 'i') : null;
 
-    const query: Record<string, any> = {};
+    const query: Record<string, unknown> = {};
 
     // Build query conditions
-    const orConditions = [];
+    const orConditions: Record<string, unknown>[] = [];
 
     if (termRegex) {
       orConditions.push(
@@ -190,7 +190,7 @@ Probe Status: ${lead.probeStatus}
       return of({ total: 0, leads: [] });
     }
 
-    query.$or = orConditions;
+    query['$or'] = orConditions;
 
     return from(
       this.leadModel
@@ -201,8 +201,8 @@ Probe Status: ${lead.probeStatus}
         .lean()
     ).pipe(
       map((leads) => ({
-        total: (leads as any[]).length,
-        leads: (leads as any[]).map((lead) => this.toResponseDto(lead)),
+        total: (leads as unknown as Record<string, unknown>[]).length,
+        leads: (leads as unknown as Record<string, unknown>[]).map((lead) => this.toResponseDto(lead)),
       }))
     );
   }
@@ -218,19 +218,19 @@ Probe Status: ${lead.probeStatus}
     );
   }
 
-  private toResponseDto(lead: any): LeadResponseDto {
+  private toResponseDto(lead: Record<string, unknown>): LeadResponseDto {
     return {
-      leadId: lead.leadId,
-      companyName: lead.companyName,
-      naicsCode: lead.naicsCode,
-      naicsDescription: lead.naicsDescription,
-      city: lead.city,
-      stateCode: lead.stateCode,
-      businessType: lead.businessType,
-      registrationStatus: lead.registrationStatus,
-      probeStatus: lead.probeStatus,
-      lastProbed: lead.lastProbed,
-      contracts: lead.contracts,
+      leadId: lead['leadId'] as string,
+      companyName: lead['companyName'] as string,
+      naicsCode: lead['naicsCode'] as string,
+      naicsDescription: lead['naicsDescription'] as string,
+      city: lead['city'] as string,
+      stateCode: lead['stateCode'] as string,
+      businessType: lead['businessType'] as string[],
+      registrationStatus: lead['registrationStatus'] as string,
+      probeStatus: lead['probeStatus'] as string,
+      lastProbed: lead['lastProbed'] as Date,
+      contracts: lead['contracts'] as LeadResponseDto['contracts'],
     };
   }
 }

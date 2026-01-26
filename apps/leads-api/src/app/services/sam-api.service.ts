@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Observable, from, throwError } from 'rxjs';
 import { map, switchMap, catchError, tap } from 'rxjs/operators';
 
+interface ErrorWithResponse extends Error {
+  response?: string;
+}
+
+interface SamApiResponse {
+  opportunitiesData?: Record<string, unknown>[];
+}
+
 @Injectable()
 export class SamApiService {
   private readonly SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
@@ -26,7 +34,7 @@ export class SamApiService {
     };
 
     const searchParams = new URLSearchParams({
-      api_key: process.env.SAM_API_KEY || 'DEMO_KEY',
+      api_key: process.env['SAM_API_KEY'] || 'DEMO_KEY',
       postedFrom: formatDate(postedFromDate),
       postedTo: formatDate(postedToDate),
       limit: (params.limit || 100).toString(),
@@ -57,7 +65,7 @@ export class SamApiService {
         disableNaics: params.disableNaics || false,
         dateRange: `${searchParams.get('postedFrom')} to ${searchParams.get('postedTo')}`,
       },
-      usingApiKey: process.env.SAM_API_KEY ? 'CUSTOM KEY' : 'DEMO_KEY',
+      usingApiKey: process.env['SAM_API_KEY'] ? 'CUSTOM KEY' : 'DEMO_KEY',
     });
 
     return from(fetch(apiUrl)).pipe(
@@ -69,15 +77,15 @@ export class SamApiService {
           return from(response.text()).pipe(
             switchMap((errorText) => {
               console.error('❌ SAM.gov API Error Response:', errorText);
-              const error = new Error(`SAM.gov API returned ${response.status}: ${response.statusText}`);
-              (error as any).response = errorText;
+              const error = new Error(`SAM.gov API returned ${response.status}: ${response.statusText}`) as ErrorWithResponse;
+              error.response = errorText;
               return throwError(() => error);
             })
           );
         }
-        return from(response.json());
+        return from(response.json() as Promise<SamApiResponse>);
       }),
-      map((data: any) => {
+      map((data) => {
         const opportunities = data.opportunitiesData || [];
         console.log('📦 SAM.gov Raw Response:', {
           totalRecords: opportunities.length,
@@ -89,8 +97,8 @@ export class SamApiService {
         if (!params.maxValue) return opportunities;
         
         const beforeCount = opportunities.length;
-        const filtered = opportunities.filter((opp: any) => {
-          const value = this.extractContractValue(opp);
+        const filtered = opportunities.filter((opp) => {
+          const value = this.extractContractValue(opp as Record<string, unknown>);
           return value && value <= (params.maxValue || 0);
         });
         console.log(`💰 After $${params.maxValue} filter: ${filtered.length} of ${beforeCount} opportunities`);

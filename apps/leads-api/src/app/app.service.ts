@@ -7,6 +7,48 @@ import { SamApiService } from './services/sam-api.service';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 
+export interface SamContract {
+  noticeId: string;
+  title: string;
+  naicsCode: string;
+  typeOfSetAsideDescription?: string;
+  type?: string;
+  postedDate?: string;
+  solicitationNumber?: string;
+  agency?: string;
+  fullParentPathName?: string;
+  baseAndAllOptionsValue?: string | number;
+  responseDeadLine?: string;
+  links?: { href?: string }[];
+}
+
+export interface HealthStatus {
+  status: string;
+  database: {
+    connected: boolean;
+    status: string;
+  };
+  samApi: {
+    connected: boolean;
+    status: string;
+    lastCheck: Date | null;
+  };
+  timestamp: string;
+}
+
+export interface SamApiTestResult {
+  success: boolean;
+  message: string;
+  contractsFound: number;
+  contracts: LeadResponseDto[];
+  timestamp: Date;
+  quota?: string;
+}
+
+export interface NdItSearchResult extends SamApiTestResult {
+  naicsCodesSearched: string[];
+}
+
 @Injectable()
 export class AppService {
   private lastSamApiCheck: Date | null = null;
@@ -24,7 +66,7 @@ export class AppService {
     return of({ message: 'SAM Leads API - Connected to in-memory MongoDB' });
   }
 
-  getHealthStatus(): Observable<any> {
+  getHealthStatus(): Observable<HealthStatus> {
     const dbConnected = this.mongoConnection.readyState === 1;
     
     // Determine SAM.gov API status
@@ -32,7 +74,7 @@ export class AppService {
     // Otherwise, check if an API key is present.
     let currentStatus = this.samApiStatus;
     if (currentStatus === 'disconnected') {
-      const apiKey = process.env.SAM_API_KEY;
+      const apiKey = process.env['SAM_API_KEY'];
       if (apiKey && apiKey !== 'DEMO_KEY' && apiKey.length > 5) {
         currentStatus = 'connected'; // Assume connected if we have a key
       }
@@ -102,18 +144,18 @@ export class AppService {
     );
   }
 
-  testLiveSamApi(): Observable<any> {
+  testLiveSamApi(): Observable<SamApiTestResult> {
     console.log('🔴 Testing LIVE SAM.gov API connection...');
-    return this.samApiService.searchContracts({
+    return (this.samApiService.searchContracts({
       maxValue: 250000,
       setAside: 'SBA', // Small Business Set-Aside
       limit: 5,
-    }).pipe(
+    }) as unknown as Observable<SamContract[]>).pipe(
       tap(() => {
         this.samApiStatus = 'connected';
         this.lastSamApiCheck = new Date();
       }),
-      switchMap((contracts: Record<string, any>[]) => {
+      switchMap((contracts) => {
         // Map to LeadResponseDto format
         const leadDtos: LeadResponseDto[] = contracts.map((contract) => ({
           leadId: contract.noticeId,
@@ -123,12 +165,12 @@ export class AppService {
           city: '',
           stateCode: '',
           businessType: [],
-          registrationStatus: contract.type,
+          registrationStatus: contract.type || '',
           probeStatus: 'live',
           lastProbed: contract.postedDate ? new Date(contract.postedDate) : undefined,
           contracts: [
             {
-              contractNumber: contract.solicitationNumber,
+              contractNumber: contract.solicitationNumber || '',
               title: contract.title,
               description: contract.agency,
               value: Number(contract.baseAndAllOptionsValue) || 0,
@@ -154,7 +196,7 @@ export class AppService {
           }))
         );
       }),
-      catchError((error: any) => {
+      catchError((error) => {
         this.samApiStatus = 'error';
         this.lastSamApiCheck = new Date();
         // Show rate limit details if available
@@ -166,7 +208,7 @@ export class AppService {
             errorMsg = 'SAM.gov API rate limit exceeded (429 Too Many Requests).';
             if (err.response) {
               try {
-                const errJson = typeof err.response === 'string' ? JSON.parse(err.response) : err.response;
+                const errJson = typeof err.response === 'string' ? JSON.parse(err.response as string) : err.response;
                 quotaMsg = `Quota message: ${errJson.message || ''} Next access: ${errJson.nextAccessTime || ''}`;
               } catch (parseErr) {
                 console.warn('Could not parse SAM.gov error response:', parseErr);
@@ -177,6 +219,8 @@ export class AppService {
         return of({
           success: false,
           message: errorMsg,
+          contractsFound: 0,
+          contracts: [],
           quota: quotaMsg,
           timestamp: new Date(),
         });
@@ -184,7 +228,7 @@ export class AppService {
     );
   }
 
-  searchNdItContracts(): Observable<any> {
+  searchNdItContracts(): Observable<NdItSearchResult> {
     console.log('🔵 Searching SAM.gov for North Dakota IT-related contracts...');
 
     const ndItNaicsCodes = [
@@ -193,18 +237,18 @@ export class AppService {
 
     // Search for each NAICS code in parallel
     const searchTasks = ndItNaicsCodes.map(naicsCode => 
-      this.samApiService.searchContracts({
+      (this.samApiService.searchContracts({
         naicsCode,
         maxValue: 250000,
         setAside: 'SBA',
         limit: 10,
-      }).pipe(
+      }) as unknown as Observable<SamContract[]>).pipe(
         tap(() => console.log(`  Received results for NAICS ${naicsCode}...`))
       )
     );
 
     return forkJoin(searchTasks).pipe(
-      map((resultsArray: Record<string, any>[][]) => {
+      switchMap((resultsArray) => {
         const allContracts = resultsArray.flat();
         
         // Remove duplicates by noticeId
@@ -214,26 +258,45 @@ export class AppService {
 
         console.log(`✅ Found ${uniqueContracts.length} unique ND IT contracts`);
 
-        return {
-          success: true,
-          message: 'North Dakota IT Contracts - Under $250K with Small Business Set-Aside',
-          contractsFound: uniqueContracts.length,
-          naicsCodesSearched: ndItNaicsCodes,
-          contracts: uniqueContracts.map((contract) => ({
-            noticeId: contract.noticeId,
-            title: contract.title,
-            solicitationNumber: contract.solicitationNumber,
-            agency: contract.fullParentPathName,
-            type: contract.type,
-            setAside: contract.typeOfSetAsideDescription,
-            value: contract.baseAndAllOptionsValue,
-            naicsCode: contract.naicsCode,
-            postedDate: contract.postedDate,
-            responseDeadLine: contract.responseDeadLine,
-            link: (contract.links as { href?: string }[])?.[0]?.href,
-          })),
-          timestamp: new Date(),
-        };
+        // Map to LeadResponseDto format for saving
+        const leadDtos: LeadResponseDto[] = uniqueContracts.map((contract) => ({
+          leadId: contract.noticeId,
+          companyName: contract.title,
+          naicsCode: contract.naicsCode,
+          naicsDescription: contract.typeOfSetAsideDescription,
+          city: '',
+          stateCode: '',
+          businessType: [],
+          registrationStatus: contract.type || '',
+          probeStatus: 'live',
+          lastProbed: contract.postedDate ? new Date(contract.postedDate) : undefined,
+          contracts: [
+            {
+              contractNumber: contract.solicitationNumber || '',
+              title: contract.title,
+              description: contract.fullParentPathName,
+              value: Number(contract.baseAndAllOptionsValue) || 0,
+              awardDate: contract.postedDate ? new Date(contract.postedDate) : new Date(),
+              status: 'Active',
+              isSample: false,
+              isTest: false,
+            },
+          ],
+        }));
+
+        // Persist to database so they appear in "Live" view
+        return from(leadDtos).pipe(
+          mergeMap(leadDto => from(this.leadsService.saveLeadIfNotExists(leadDto))),
+          toArray(),
+          map(() => ({
+            success: true,
+            message: 'North Dakota IT Contracts - Under $250K with Small Business Set-Aside',
+            contractsFound: uniqueContracts.length,
+            naicsCodesSearched: ndItNaicsCodes,
+            contracts: leadDtos,
+            timestamp: new Date(),
+          }))
+        );
       })
     );
   }
@@ -246,16 +309,16 @@ export class AppService {
     success: boolean;
     message: string;
     contractsFound: number;
-    contracts: Record<string, unknown>[];
+    contracts: SamContract[];
     timestamp: Date;
   }> {
-    return this.samApiService
+    return (this.samApiService
       .searchContracts({
         naicsCode: params.naicsCode,
         maxValue: params.maxValue || 250000,
         setAside: 'SBA',
         limit: params.limit || 10,
-      })
+      }) as unknown as Observable<SamContract[]>)
       .pipe(
         map((contracts) => {
           console.log(

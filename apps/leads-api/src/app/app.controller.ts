@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { AppService } from './app.service';
+import { AppService, SamContract, HealthStatus, SamApiTestResult, NdItSearchResult } from './app.service';
 import { LeadResponseDto, ProbeResultDto } from './dto/lead.dto';
 
 @Controller()
@@ -14,7 +14,7 @@ export class AppController {
   }
 
   @Get('health')
-  getHealth(): Observable<any> {
+  getHealth(): Observable<HealthStatus> {
     return this.appService.getHealthStatus();
   }
 
@@ -23,7 +23,7 @@ export class AppController {
     @Query('mode') mode?: string
   ): Observable<{ leads: LeadResponseDto[]; scriptOutput: string }> {
     return this.appService.packLeads(mode).pipe(
-      catchError((error) => {
+      catchError((error: Error) => {
         console.error('Error in packLeads:', error);
         return of({
           leads: [],
@@ -34,20 +34,21 @@ export class AppController {
   }
 
   @Get('sam/test-live')
-  testLiveSam(): Observable<any> {
+  testLiveSam(): Observable<SamApiTestResult> {
     return this.appService.testLiveSamApi();
   }
 
   @Get('sam/nd-it')
-  searchNdIt(): Observable<any> {
+  searchNdIt(): Observable<NdItSearchResult> {
     return this.appService.searchNdItContracts().pipe(
-      catchError((error) => {
+      catchError((error: Error) => {
         console.error('Error in searchNdIt:', error);
         return of({
           success: false,
           message: `Error searching ND IT contracts: ${error?.toString()}`,
           contractsFound: 0,
           contracts: [],
+          naicsCodesSearched: [],
           timestamp: new Date(),
         });
       })
@@ -80,7 +81,7 @@ export class AppController {
     success: boolean;
     message: string;
     contractsFound: number;
-    contracts: Record<string, unknown>[];
+    contracts: SamContract[];
     timestamp: Date;
   }> {
     return this.appService.searchSamGov({
