@@ -75,7 +75,7 @@ export class App implements OnInit, OnDestroy {
     this.statusService.setMode(mode);
   }
 
-  showStatusDetails(kind: 'frontend' | 'backend' | 'database' | 'samApi') {
+  async showStatusDetails(kind: 'frontend' | 'backend' | 'database' | 'samApi'): Promise<void> {
     const parts: Record<string, string> = {
       frontend: `Frontend — status: ${this.frontendStatus}`,
       backend: `Backend API — status: ${
