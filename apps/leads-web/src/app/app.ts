@@ -120,7 +120,7 @@ export class App implements OnInit, OnDestroy {
           // ignore and fall back to backend/local status
           console.debug(
             'Could not fetch probe issue:',
-            (err as any).message ?? err
+            (((err as unknown) as Error).message ?? String(err))
           );
         }
         // fallback

@@ -31,7 +31,8 @@ describe('App', () => {
         },
       ],
     };
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => mockIssue });
 
     const fixture = TestBed.createComponent(App);
