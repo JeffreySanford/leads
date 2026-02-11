@@ -90,7 +90,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.0",
-    "axios": "^1.6.0",
+    "axios": "^1.13.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "mongodb-memory-server": "^10.3.0",
